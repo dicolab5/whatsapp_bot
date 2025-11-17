@@ -4,8 +4,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const runMigrations = require('./migrations');
 const db = require('./db');
-const { client, syncContacts } = require('./whatsapp');
 const { createAndSendBroadcast } = require('./broadcastService');
+const { client, syncContacts, getQrStatus } = require('./whatsapp');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -106,6 +107,9 @@ app.get('/', (req, res) => {
             </div>
             <div class="col-md-4">
               <a href="/sync-contacts" class="btn btn-outline-secondary w-100">Sincronizar contatos</a>
+            </div>
+            <div class="col-md-4">
+              <a href="/qr" class="btn btn-outline-danger w-100">Conectar WhatsApp</a>
             </div>
           </div>
         </div>
@@ -378,6 +382,85 @@ app.get('/sync-contacts', async (req, res) => {
     </div>`;
     res.status(500).send(layout({ title: 'Erro sincronização', content }));
   }
+});
+
+// API simples para obter o QR atual e status
+app.get('/api/qr', (req, res) => {
+  const status = getQrStatus();
+  res.json(status);
+});
+
+// Página para exibir o QR code do WhatsApp
+app.get('/qr', (req, res) => {
+  const content = `
+  <div class="row">
+    <div class="col-lg-6 mx-auto">
+      <div class="card">
+        <div class="card-body text-center">
+          <h2 class="h5 mb-3">Conectar WhatsApp</h2>
+          <p class="text-muted">
+            Aponte a câmera do WhatsApp (Aparelhos conectados) para o QR abaixo.
+          </p>
+          <div id="qr-container" class="d-flex justify-content-center my-3">
+            <div id="qrcode"></div>
+          </div>
+          <p id="qr-status" class="text-muted small"></p>
+          <a href="/" class="btn btn-link">Voltar ao painel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lib simples de QRCode em JS (QRCode.js) via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script>
+    let qrInstance = null;
+
+    async function fetchQr() {
+      try {
+        const res = await fetch('/api/qr');
+        const data = await res.json();
+
+        const statusEl = document.getElementById('qr-status');
+        const qrDiv = document.getElementById('qrcode');
+
+        if (data.ready) {
+          // Já conectado
+          statusEl.textContent = 'WhatsApp conectado! Você já pode usar o painel normalmente.';
+          qrDiv.innerHTML = '';
+          return;
+        }
+
+        if (!data.qr) {
+          statusEl.textContent = 'Aguardando QR code do WhatsApp...';
+          qrDiv.innerHTML = '';
+          return;
+        }
+
+        statusEl.textContent = 'QR code ativo. Escaneie com o app do WhatsApp.';
+
+        // Desenha / atualiza o QR
+        qrDiv.innerHTML = '';
+        qrInstance = new QRCode(qrDiv, {
+          text: data.qr,
+          width: 256,
+          height: 256,
+        });
+
+      } catch (err) {
+        console.error(err);
+        const statusEl = document.getElementById('qr-status');
+        statusEl.textContent = 'Erro ao carregar QR. Tente atualizar a página.';
+      }
+    }
+
+    // Busca inicial
+    fetchQr();
+    // Atualiza a cada 10 segundos (WhatsApp renova o QR periodicamente)
+    setInterval(fetchQr, 10000);
+  </script>
+  `;
+  res.send(layout({ title: 'Conectar WhatsApp', content }));
 });
 
 async function start() {
