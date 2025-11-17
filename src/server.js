@@ -340,8 +340,8 @@ app.get('/contacts', requireAdmin, async (req, res) => {
 
 // Alternar opt-in de um contato
 app.post('/contacts/:id/toggle-optin', requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) return res.status(400).send('ID inválido');
+  const id = Number.parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) return res.status(400).send('ID inválido');
 
   const contact = await db('whatsapp_contacts').where({ id }).first();
   if (!contact) return res.status(404).send('Contato não encontrado');
@@ -419,7 +419,7 @@ app.post('/broadcast', requireAdmin, async (req, res) => {
 
   let idsArray = [];
   if (contactIds && contactIds.trim() !== '') {
-    idsArray = contactIds.split(',').map(id => parseInt(id, 10)).filter(n => !isNaN(n));
+    idsArray = contactIds.split(',').map(id => Number.parseInt(id, 10)).filter(n => !Number.isNaN(n));
   }
 
   try {
@@ -681,8 +681,8 @@ app.get('/tickets', requireAdmin, async (req, res) => {
 
 // Marcar atendimento humano como resolvido
 app.post('/tickets/:id/resolve-human', requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) return res.status(400).send('ID inválido');
+  const id = Number.parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) return res.status(400).send('ID inválido');
 
   await db('whatsapp_contacts')
     .where({ id })
@@ -696,8 +696,8 @@ app.post('/tickets/:id/resolve-human', requireAdmin, async (req, res) => {
 
 // Marcar pedido de manutenção como resolvido
 app.post('/tickets/:id/resolve-maintenance', requireAdmin, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) return res.status(400).send('ID inválido');
+  const id = Number.parseInt(req.params.id, 10);
+  if (Number.isNaN(id)) return res.status(400).send('ID inválido');
 
   await db('maintenance_requests')
     .where({ id })
@@ -720,3 +720,4 @@ async function start() {
 start().catch((err) => {
   console.error('Erro ao iniciar aplicação:', err);
 });
+
