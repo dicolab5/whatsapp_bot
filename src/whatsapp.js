@@ -5,11 +5,24 @@ const db = require('./db');
 let lastQr = null;
 let isReady = false;
 
+// const client = new Client({
+//   //authStrategy: new LocalAuth(),
+//   puppeteer: {
+//     headless: true,
+//     args: ['--no-sandbox', '--disable-setuid-sandbox']
+//   }
+// });
+
 const client = new Client({
-  //authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--single-process',
+      '--no-zygote'
+    ]
   }
 });
 
@@ -315,6 +328,7 @@ module.exports = {
   syncContacts,
   getQrStatus
 };
+
 
 
 
