@@ -7,9 +7,7 @@ const runMigrations = require('./migrations');
 const db = require('./db');
 const { createAndSendBroadcast } = require('./broadcastService');
 //const { client, syncContacts, getQrStatus } = require('./whatsapp');
-const { syncContacts, getBotStatus } = require('./whatsapp');
-const { client } = require('./whatsapp');
-
+const { client, syncContacts, getQrStatus, getBotStatus } = require('./whatsapp');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1519,5 +1517,6 @@ start().catch((err) => {
 // start().catch((err) => {
 //   console.error('Erro ao iniciar aplicação:', err);
 // });
+
 
 
