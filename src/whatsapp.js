@@ -1,12 +1,12 @@
 // src/whatsapp.js subir para o github
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client } = require('whatsapp-web.js');
 const db = require('./db');
 
 let lastQr = null;
 let isReady = false;
 
 const client = new Client({
-  authStrategy: new LocalAuth(),
+  //authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -315,6 +315,7 @@ module.exports = {
   syncContacts,
   getQrStatus
 };
+
 
 
 
