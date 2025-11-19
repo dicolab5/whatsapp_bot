@@ -1,5 +1,5 @@
 const express = require('express');
-const { client, getQrStatus } = require('./src/whatsapp');
+const { client, getQrStatus } = require('./whatsapp');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -1566,6 +1566,7 @@ app.listen(PORT, () => {
 // // start().catch((err) => {
 // //   console.error('Erro ao iniciar aplicação:', err);
 // // });
+
 
 
 
