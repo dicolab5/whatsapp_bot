@@ -1,7 +1,7 @@
-// src/whatsapp.js
 const { Client } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');  // para mostrar QR no terminal
-require('dotenv').config();
+
+let lastQr = null;
+let isReady = false;
 
 const client = new Client({
   puppeteer: {
@@ -10,43 +10,22 @@ const client = new Client({
   }
 });
 
-// Quando QR for recebido, mostrar no terminal
 client.on('qr', (qr) => {
-  console.log('QR code recebido, escaneie pelo app WhatsApp:');
-  qrcode.generate(qr, { small: true });
+  lastQr = qr;
+  isReady = false;
 });
 
-// Quando o WhatsApp estiver pronto (conectado)
 client.on('ready', () => {
-  console.log('Cliente WhatsApp conectado e pronto!');
+  lastQr = null;
+  isReady = true;
 });
 
-// Captura falha de autenticação
-client.on('auth_failure', msg => {
-  console.error('Falha na autenticação do WhatsApp:', msg);
-});
-
-// Evento desconexão
-client.on('disconnected', reason => {
-  console.log('WhatsApp desconectado:', reason);
-});
-
-// Exemplo simples de resposta automática
-client.on('message', async (msg) => {
-  if (msg.body.toLowerCase() === 'oi') {
-    await msg.reply('Olá! Este é um chatbot básico funcionando no Render.');
-  }
-});
-
-// Inicializa o client
-function startWhatsAppClient() {
-  client.initialize();
+function getQrStatus() {
+  return { qr: lastQr, ready: isReady };
 }
 
-module.exports = {
-  startWhatsAppClient,
-  client,
-};
+module.exports = { client, getQrStatus };
+
 
 
 // // src/whatsapp.js
@@ -495,6 +474,7 @@ module.exports = {
 // //   syncContacts,
 // //   getQrStatus
 // // };
+
 
 
 
