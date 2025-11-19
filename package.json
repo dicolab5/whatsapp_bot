@@ -1,15 +1,27 @@
 {
-  "name": "chatbot-render",
+  "name": "proj_and",
   "version": "1.0.0",
-  "main": "src/server.js",
+  "main": "index.js",
+  "_comment": "Subir para o github",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
   "dependencies": {
-    "dotenv": "^16.5.0",
+    "body-parser": "^2.2.0",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "pg": "^8.16.0",
+    "express-session": "^1.18.2",
+    "knex": "^3.1.0",
+    "mysql2": "^3.15.3",
+    "pg": "^8.16.3",
     "qrcode-terminal": "^0.12.0",
+    "sqlite3": "^5.1.7",
     "whatsapp-web.js": "^1.33.2"
   }
 }
+
