@@ -840,6 +840,22 @@ app.post('/tickets/:id/resolve-maintenance', requireAdmin, async (req, res) => {
 //   console.error('Erro ao iniciar aplicação:', err);
 // });
 
+async function start() {
+  try {
+    await runMigrations();
+    await client.initialize(); // Aguarde sempre!
+    app.listen(PORT, () => {
+      console.log(`Admin rodando em http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Erro ao iniciar aplicação:', err);
+    // Garante que o erro será mostrado no Render
+    process.exit(1);
+  }
+}
+start();
+
+
 
 // // // src/server.js subir para o github
 // // require('dotenv').config();
@@ -1563,6 +1579,7 @@ app.post('/tickets/:id/resolve-maintenance', requireAdmin, async (req, res) => {
 // // start().catch((err) => {
 // //   console.error('Erro ao iniciar aplicação:', err);
 // // });
+
 
 
 
