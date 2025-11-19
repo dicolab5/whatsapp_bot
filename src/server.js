@@ -1,19 +1,51 @@
-// src/server.js
-require('dotenv').config();
 const express = require('express');
-const { startWhatsAppClient } = require('./whatsapp');
-
+const { client, getQrStatus } = require('./src/whatsapp');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
-  res.send('Chatbot rodando. Acompanhe o terminal para o QR code.');
+app.get('/api/qr', (req, res) => {
+  res.json(getQrStatus());
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  startWhatsAppClient();
+// Página de conexão
+app.get('/qr', (req, res) => {
+  res.send(`
+    <h2>Escaneie o QR code para conectar seu WhatsApp</h2>
+    <div id="qrcode"></div>
+    <p id="qr-status"></p>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+      async function fetchQr() {
+        const res = await fetch('/api/qr');
+        const { qr, ready } = await res.json();
+        const statusEl = document.getElementById('qr-status');
+        const qrDiv = document.getElementById('qrcode');
+        if (ready) {
+          statusEl.textContent = 'WhatsApp conectado!';
+          qrDiv.innerHTML = '';
+          return;
+        }
+        if (!qr) {
+          statusEl.textContent = 'Aguardando QR code...';
+          qrDiv.innerHTML = '';
+          return;
+        }
+        statusEl.textContent = 'Escaneie usando o WhatsApp!';
+        qrDiv.innerHTML = '';
+        new QRCode(qrDiv, { text: qr, width: 256, height: 256 });
+      }
+      fetchQr();
+      setInterval(fetchQr, 10000);
+    </script>
+  `);
 });
+
+client.initialize();
+
+app.listen(PORT, () => {
+  console.log(`Server on http://localhost:${PORT}`);
+});
+
 
 // // src/server.js subir para o github
 // require('dotenv').config();
@@ -1534,6 +1566,7 @@ app.listen(PORT, () => {
 // // start().catch((err) => {
 // //   console.error('Erro ao iniciar aplicação:', err);
 // // });
+
 
 
 
