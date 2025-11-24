@@ -1,6 +1,6 @@
 // src/routes/contactRoutes.js
 const express = require('express');
-const ContactController = require('../controllers/contactController');
+const ContactController = require('../controllers/ContactController');
 const router = express.Router();
 
 // List contacts (API for AJAX frontend)
@@ -13,3 +13,4 @@ router.post('/:id/toggle-optin', ContactController.toggleOptIn);
 router.post('/clear', ContactController.clearContacts);
 
 module.exports = router;
+
