@@ -16,13 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTicketsTable(maintBody, maintenance, 'maintenance');
     } catch (err) {
       humanBody.innerHTML = '<tr><td colspan="5">Erro ao carregar fila humana.</td></tr>';
-      maintBody.innerHTML = '<tr><td colspan="6">Erro ao carregar manutenção.</td></tr>';
+      maintBody.innerHTML = '<tr><td colspan="9">Erro ao carregar manutenção.</td></tr>';
     }
   }
 
   function renderTicketsTable(body, list, type) {
     if (!list.length) {
-      body.innerHTML = `<tr><td colspan="${type === 'human' ? 5 : 6}">Nenhum registro.</td></tr>`;
+      body.innerHTML = `<tr><td colspan="${type === 'human' ? 5 : 9}">Nenhum registro.</td></tr>`;
       return;
     }
     body.innerHTML = list.map(item => {
@@ -47,8 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${displayName}</td>
             <td>${item.number || ''}</td>
             <td>${item.wa_id}</td>
-            <td>${item.raw_message}</td>
-            <td>${item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : ''}</td>
+            <td>${item.description || item.raw_message || ''}</td>
+            <td>${item.date || ''}</td>
+            <td>${item.period || ''}</td>
+            <td>${item.address || ''}</td>
+            <td>${item.city || ''}</td>
             <td>
               <form method="POST" action="/api/tickets/${item.id}/resolve-maintenance" style="display:inline;">
                 <button type="submit" class="btn btn-sm btn-outline-success">Marcar como resolvido</button>
@@ -65,3 +68,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // Opcional: atualizar de tempos em tempos
   setInterval(fetchTickets, 20000);
 });
+
+

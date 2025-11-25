@@ -1,14 +1,14 @@
-// ==============================
-// src/whatsapp.js - Código adaptado combinado
+// src/whatsapp.js - Código corrigido completo adaptado
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const db = require('../database/db');
+// Estado de contexto para agendamento pendente
+const pendingMaintenanceUsers = {};
 
 let lastQr = null;
 let isReady = false;
 let clientInitialized = false;
 
-// Configuração do cliente WhatsApp com LocalAuth e args para Render
 const client = new Client({
   authStrategy: new LocalAuth({
     dataPath: './session'
@@ -32,10 +32,8 @@ const client = new Client({
   }
 });
 
-// Mantém o render acordado
 setInterval(() => console.log("Heartbeat..."), 1000 * 60 * 4);
 
-// Eventos do cliente
 client.on('qr', (qr) => {
   console.log('QR code atualizado (use /qr no painel para escanear).');
   lastQr = qr;
@@ -58,17 +56,14 @@ client.on('disconnected', (reason) => {
   isReady = false;
 });
 
-// Status do QR para painel admin
 function getQrStatus() {
   return { qr: lastQr, ready: isReady };
 }
 
-// Status geral do bot
 function getBotStatus() {
   return { ready: isReady };
 }
 
-// Função para iniciar o client sob demanda
 async function startClient() {
   if (!clientInitialized) {
     clientInitialized = true;
@@ -76,11 +71,10 @@ async function startClient() {
   }
 }
 
-// Função para parar o client sob demanda
 async function stopClient() {
   if (clientInitialized) {
     try {
-      await client.destroy(); // Encerra Puppeteer/browser, fecha conexão
+      await client.destroy();
       clientInitialized = false;
       isReady = false;
       lastQr = null;
@@ -93,7 +87,6 @@ async function stopClient() {
 
 async function syncContacts() {
   if (!isReady) return;
-
   try {
     const contacts = await client.getContacts();
 
@@ -142,7 +135,6 @@ async function syncContacts() {
   }
 }
 
-// Texto do menu principal mais completo e amigável
 function getMainMenuText() {
   return (
     'Olá! 👋 Seja bem-vindo ao atendente virtual da SuperTI.\n\n' +
@@ -155,7 +147,6 @@ function getMainMenuText() {
   );
 }
 
-// Função para normalizar texto (remover acentos, caixa baixa, trim)
 function normalizeText(text) {
   return text
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -163,7 +154,6 @@ function normalizeText(text) {
     .trim();
 }
 
-// Detecção de saudações para responder com o menu
 function isGreeting(text) {
   const t = normalizeText(text);
   const greetings = [
@@ -173,42 +163,98 @@ function isGreeting(text) {
   return greetings.some(g => t === g || t.startsWith(g));
 }
 
-// Detecção de opt-out (sair/parar)
 function isOptOut(text) {
   const t = normalizeText(text);
   return t === 'sair' || t === 'parar';
 }
 
-// Normaliza o ID do WhatsApp (aqui mantém padrão, mas pode adaptar se quiser)
 function normalizeWaId(raw) {
   return raw;
 }
 
-// Evento de mensagem principal com lógica detalhada do chatbot
 client.on('message', async (msg) => {
   try {
     if (!isReady) return;
 
     const chat = await msg.getChat();
-    if (chat.isGroup) return; // ignora grupos
+    if (chat.isGroup) return;
 
     const from = msg.from;
     const body = (msg.body || '').trim();
     const normalized = normalizeText(body);
 
-    // Opt-out imediato
     if (isOptOut(body)) {
       await handleOptOut(from);
       return;
     }
 
-    // Saudação com menu
     if (isGreeting(body)) {
       await client.sendMessage(from, getMainMenuText());
       return;
     }
 
-    // Menu principal opções (1,2,3,4)
+    // Verifica se o usuário está em fluxo de agendamento
+    if (pendingMaintenanceUsers[from]) {
+      const state = pendingMaintenanceUsers[from];
+
+      // Simular digitação antes de enviar respostas no fluxo
+      await chat.sendStateTyping();
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      await chat.clearState();
+
+      if (normalized === 'cancelar') {
+        delete pendingMaintenanceUsers[from];
+        await client.sendMessage(from, 'Agendamento cancelado. Para iniciar novamente, envie "4".');
+        return;
+      }
+
+      if (state.step === 1) {
+        state.data.date = body;
+        state.step = 2;
+        await client.sendMessage(from, "Agora, informe o período (manhã ou tarde):");
+      } else if (state.step === 2) {
+        state.data.period = body;
+        state.step = 3;
+        await client.sendMessage(from, "Informe o endereço completo:");
+      } else if (state.step === 3) {
+        state.data.address = body;
+        state.step = 4;
+        await client.sendMessage(from, "Informe a cidade:");
+      } else if (state.step === 4) {
+        state.data.city = body;
+        state.step = 5;
+        await client.sendMessage(from, "Descreva o problema:");
+      } else if (state.step === 5) {
+        state.data.description = body;
+        state.step = 6;
+        await client.sendMessage(from, 'Confirma o agendamento? Responda "sim" para confirmar ou "não" para cancelar.');
+      } else if (state.step === 6) {
+        if (normalized === 'sim') {
+          const contact = await db('whatsapp_contacts').where({ wa_id: from }).first();
+          await db('maintenance_requests').insert({
+            contact_id: contact ? contact.id : null,
+            wa_id: from,
+            raw_message: `Agendamento: data ${state.data.date}, período ${state.data.period}, endereço ${state.data.address}, cidade ${state.data.city}, descrição ${state.data.description}`,
+            date: state.data.date,
+            period: state.data.period,
+            address: state.data.address,
+            city: state.data.city,
+            description: state.data.description,
+            status: 'pending'
+          });
+          delete pendingMaintenanceUsers[from];
+          await client.sendMessage(from, "Agendamento registrado! Um atendente irá confirmar em breve.");
+        } else if (normalized === 'nao' || normalized === 'não') {
+          delete pendingMaintenanceUsers[from];
+          await client.sendMessage(from, "Agendamento cancelado. Para iniciar novamente, envie '4'.");
+        } else {
+          await client.sendMessage(from, 'Resposta inválida. Por favor, responda "sim" para confirmar ou "não" para cancelar.');
+        }
+      }
+      return;
+    }
+
+    // Fora do fluxo, tratar opções do menu normalmente
     const choice = normalized.replace(/\s+/g, '');
 
     if (choice === '1') {
@@ -231,45 +277,23 @@ client.on('message', async (msg) => {
       return;
     }
 
-    // Caso o contato está aguardando atendimento humano, só registra logs (não implementado aqui)
     const waId = normalizeWaId(from);
     const contact = await db('whatsapp_contacts').where({ wa_id: waId }).first();
 
     if (contact && contact.needs_human) {
-      // Aqui poderia logar mensagens para atendimento humano, por enquanto só retorna
       return;
     }
 
-    // Tratamento de mensagens após opção 4 (agendamento) pendente
-    const lastMaintenance = await db('maintenance_requests')
-      .where({ wa_id: waId })
-      .orderBy('created_at', 'desc')
-      .first();
-
-    if (lastMaintenance && lastMaintenance.status === 'pending') {
-      await db('maintenance_requests').insert({
-        contact_id: contact ? contact.id : null,
-        wa_id: waId,
-        raw_message: body,
-        status: 'pending'
-      });
-      return;
-    }
-
-    // Se é número inválido (1 a 9, exceto opções válidas), reenviar menu
     if (/^[0-9]$/.test(choice)) {
       await client.sendMessage(
         from,
         'Não entendi a opção digitada.\n\n' + getMainMenuText()
       );
     }
-
   } catch (err) {
     console.error('Erro no listener de mensagem:', err);
   }
 });
-
-// Handlers detalhados
 
 async function handleOptIn(from) {
   const waId = normalizeWaId(from);
@@ -284,7 +308,7 @@ async function handleOptIn(from) {
   await client.sendMessage(
     from,
     'Perfeito! ✅ Você agora está cadastrado para receber ofertas, novidades e promoções da SuperTI.\n\n' +
-    'Quando quiser parar de receber, basta enviar "SAIR".'
+      'Quando quiser parar de receber, basta enviar "SAIR".'
   );
 }
 
@@ -301,7 +325,7 @@ async function handleOptOut(from) {
   await client.sendMessage(
     from,
     'Pronto! ❌ Você não receberá mais ofertas e campanhas automáticas da SuperTI.\n\n' +
-    'Se quiser voltar a receber no futuro, envie "Oi" e escolha a opção 1.'
+      'Se quiser voltar a receber no futuro, envie "Oi" e escolha a opção 1.'
   );
 }
 
@@ -329,29 +353,22 @@ async function handleHumanSupport(from) {
   await client.sendMessage(
     from,
     'Um atendente da SuperTI vai te responder em breve. 👨‍💻\n\n' +
-    'Nosso horário de atendimento é de segunda a sexta, das 09h às 18h.'
+      'Nosso horário de atendimento é de segunda a sexta, das 09h às 18h.'
   );
 }
 
 async function handleMaintenanceSchedule(from) {
   const waId = normalizeWaId(from);
-  const contact = await db('whatsapp_contacts').where({ wa_id: waId }).first();
-
-  // cria um registro inicial, o resto das mensagens serão anexadas como pending
-  await db('maintenance_requests').insert({
-    contact_id: contact ? contact.id : null,
-    wa_id: waId,
-    raw_message: 'Início de agendamento (opção 4).',
-    status: 'pending'
-  });
+  pendingMaintenanceUsers[waId] = { step: 1, data: {} };
 
   const text =
-    'Para agendar uma visita de manutenção, responda com:\n' +
-    '• Dia desejado (ex: 25/11)\n' +
-    '• Período (manhã/tarde)\n' +
-    '• Descrição rápida do problema.\n\n' +
-    'Um atendente da SuperTI vai confirmar o horário com você.';
-
+    'Para agendar uma visita, informe na ordem:\n' +
+    '1️⃣ Data desejada (ex: 25/11)\n' +
+    '2️⃣ Período (manhã/tarde)\n' +
+    '3️⃣ Endereço completo\n' +
+    '4️⃣ Cidade\n' +
+    '5️⃣ Breve descrição do problema\n\n' +
+    'Responda com cada item em uma mensagem, seguindo a ordem e aguarde a próxima instrução a cada passo.';
   await client.sendMessage(from, text);
 }
 

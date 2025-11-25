@@ -13,4 +13,3 @@ router.post('/:id/toggle-optin', ContactController.toggleOptIn);
 router.post('/clear', ContactController.clearContacts);
 
 module.exports = router;
-

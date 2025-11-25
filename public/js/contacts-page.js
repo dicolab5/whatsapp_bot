@@ -44,13 +44,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // form.addEventListener('submit', function(e) {
+  //   const selected = Array.from(document.querySelectorAll('.contact-checkbox')).filter(cb => cb.checked);
+  //   if (selected.length === 0) {
+  //     e.preventDefault();
+  //     alert('Selecione ao menos um contato para criar a campanha.');
+  //   }
+  // });
+
   form.addEventListener('submit', function(e) {
-    const selected = Array.from(document.querySelectorAll('.contact-checkbox')).filter(cb => cb.checked);
-    if (selected.length === 0) {
-      e.preventDefault();
-      alert('Selecione ao menos um contato para criar a campanha.');
-    }
-  });
+  e.preventDefault(); // previne envio padrão
+
+  const selected = Array.from(document.querySelectorAll('.contact-checkbox'))
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+
+  if (selected.length === 0) {
+    alert('Selecione ao menos um contato para criar a campanha.');
+    return;
+  }
+
+  const contactIdsParam = selected.join(',');
+  window.location.href = `/broadcast?contactIds=${contactIdsParam}`;
+});
+
 
   // Inicializa
   fetchContacts();

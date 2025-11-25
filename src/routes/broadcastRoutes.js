@@ -3,6 +3,8 @@ const express = require('express');
 const BroadcastController = require('../controllers/BroadcastController');
 const router = express.Router();
 
+// List saved broadcasts
+router.get('/', BroadcastController.list);
 // Send broadcast
 router.post('/send', BroadcastController.send);
 

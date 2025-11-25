@@ -1,15 +1,17 @@
-// src/services/broadcastService.js 
+// src/services/broadcastService.js corrigido 
 const db = require('../database/db');
 const { client } = require('../whatsapp/whatsapp');
+const { MessageMedia } = require('whatsapp-web.js');
+const path = require('path');
+const fs = require('fs');
 
-// Configs anti-ban básicas (ajuste conforme sua realidade)
-const MIN_DELAY_MS = 4000;      // 4s
-const MAX_DELAY_MS = 9000;      // 9s
-const MAX_PER_BATCH = 40;       // máximo por campanha / execução quando não há seleção manual
-const MAX_DAILY_TOTAL = 200;    // limite diário simplificado
+const MIN_DELAY_MS = 4000;
+const MAX_DELAY_MS = 9000;
+const MAX_PER_BATCH = 40;
+const MAX_DAILY_TOTAL = 200;
 
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function randomDelay() {
@@ -18,7 +20,7 @@ function randomDelay() {
 
 async function countTodaySends() {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(0,0,0,0);
   const res = await db('whatsapp_broadcast_logs')
     .where('sent_at', '>=', today)
     .count({ total: 'id' })
@@ -27,41 +29,58 @@ async function countTodaySends() {
 }
 
 /**
- * name: nome da campanha
- * message: texto da mensagem
- * filters: { onlyOptIn: boolean, onlyNonGroup: boolean }
- * contactIds: array de IDs específicos de whatsapp_contacts (opcional)
+ * Cria e envia broadcast.
+ * 
+ * @param {string} name Nome da campanha
+ * @param {string} message Texto da mensagem
+ * @param {string|null} imageUrl URL relativa da imagem (ex: 'img/xyz.png') ou null
+ * @param {object} filters Filtros { onlyOptIn: boolean, onlyNonGroup: boolean }
+ * @param {number[]} contactIds Array de IDs de contatos (opcional)
+ * @param {number|null} reuseBroadcastId Se informado, reutiliza campanha existente (não cria nova)
  */
-async function createAndSendBroadcast({ name, message, filters = {}, contactIds = [] }) {
+async function createAndSendBroadcast({ 
+  name, 
+  message, 
+  imageUrl = null, 
+  filters = {}, 
+  contactIds = [],
+  reuseBroadcastId = null 
+}) {
   const sentToday = await countTodaySends();
   if (sentToday >= MAX_DAILY_TOTAL) {
     throw new Error('Limite diário de envios atingido, tente novamente amanhã.');
   }
 
-  const broadcastId = await db('whatsapp_broadcasts')
-    .insert({ name, message })
-    .returning('id')
-    .then((rows) => (Array.isArray(rows) ? rows[0].id : rows[0]));
+  const cleanImageUrl = imageUrl ? imageUrl.replace(/^\/+/, '') : null;
+
+  let broadcastId;
+
+  if (reuseBroadcastId) {
+    // Reuso da campanha existente - não cria nova
+    broadcastId = reuseBroadcastId;
+  } else {
+    // Cria nova campanha no banco
+    broadcastId = await db('whatsapp_broadcasts')
+      .insert({ name, message, image_url: cleanImageUrl })
+      .returning('id')
+      .then(rows => Array.isArray(rows) ? rows[0].id : rows[0]);
+  }
 
   let query = db('whatsapp_contacts').whereNotNull('wa_id');
 
-  // Se veio lista de IDs, envia só para eles
-  if (contactIds && contactIds.length > 0) {
+  if (contactIds.length > 0) {
     query = query.whereIn('id', contactIds);
   } else {
-    // Modo “automático”: filtra por opt-in e não-grupo
     if (filters.onlyOptIn) {
       query = query.andWhere('opt_in', true);
     }
     if (filters.onlyNonGroup !== false) {
       query = query.andWhere('is_group', false);
     }
-    // Limita tamanho do lote
     query = query.limit(MAX_PER_BATCH);
   }
 
   const contacts = await query;
-
   console.log(`Iniciando broadcast "${name}" para ${contacts.length} contatos.`);
 
   let sentCount = 0;
@@ -75,7 +94,19 @@ async function createAndSendBroadcast({ name, message, filters = {}, contactIds 
 
     const waId = contact.wa_id;
     try {
-      await client.sendMessage(waId, message);
+      if (cleanImageUrl) {
+        const absolutePath = path.resolve(__dirname, '..', '..', 'public', cleanImageUrl);
+
+        if (!fs.existsSync(absolutePath)) {
+          throw new Error(`Arquivo de imagem não encontrado: ${absolutePath}`);
+        }
+
+        const media = MessageMedia.fromFilePath(absolutePath);
+        await client.sendMessage(waId, media, { caption: message });
+      } else {
+        await client.sendMessage(waId, message);
+      }
+
       sentCount++;
 
       await db('whatsapp_broadcast_logs').insert({
@@ -98,7 +129,6 @@ async function createAndSendBroadcast({ name, message, filters = {}, contactIds 
       });
     }
 
-    // Delay aleatório entre envios
     await sleep(randomDelay());
   }
 

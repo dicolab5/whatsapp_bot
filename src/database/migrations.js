@@ -1,4 +1,4 @@
-// src/migrations.js subir para o github
+// src/database/migrations.js 
 require('dotenv').config();
 const db = require('./db');
 
@@ -29,14 +29,23 @@ async function runMigrations() {
   }
 
   const hasBroadcasts = await db.schema.hasTable('whatsapp_broadcasts');
-  if (!hasBroadcasts) {
-    await db.schema.createTable('whatsapp_broadcasts', (table) => {
-      table.increments('id').primary();
-      table.string('name').notNullable();
-      table.text('message').notNullable();
-      table.timestamp('created_at').defaultTo(db.fn.now());
+
+if (hasBroadcasts) {
+  const hasImageUrl = await db.schema.hasColumn('whatsapp_broadcasts', 'image_url');
+  if (!hasImageUrl) {
+    await db.schema.alterTable('whatsapp_broadcasts', (table) => {
+      table.string('image_url').nullable();
     });
   }
+} else {
+  await db.schema.createTable('whatsapp_broadcasts', (table) => {
+    table.increments('id').primary();
+    table.string('name').notNullable();
+    table.text('message').notNullable();
+    table.string('image_url').nullable();
+    table.timestamp('created_at').defaultTo(db.fn.now());
+  });
+}
 
   const hasBroadcastLogs = await db.schema.hasTable('whatsapp_broadcast_logs');
   if (!hasBroadcastLogs) {
@@ -52,16 +61,36 @@ async function runMigrations() {
   }
 
   const hasMaintenance = await db.schema.hasTable('maintenance_requests');
-  if (!hasMaintenance) {
-    await db.schema.createTable('maintenance_requests', (table) => {
-      table.increments('id').primary();
-      table.integer('contact_id').references('id').inTable('whatsapp_contacts');
-      table.string('wa_id').notNullable();
-      table.text('raw_message').notNullable();       // texto que o cliente enviou
-      table.string('status').notNullable().defaultTo('pending'); // pending, contacted, done
-      table.timestamp('created_at').defaultTo(db.fn.now());
-    });
-  }
+
+if (hasMaintenance) {
+  const hasDate = await db.schema.hasColumn('maintenance_requests', 'date');
+  const hasPeriod = await db.schema.hasColumn('maintenance_requests', 'period');
+  const hasAddress = await db.schema.hasColumn('maintenance_requests', 'address');
+  const hasCity = await db.schema.hasColumn('maintenance_requests', 'city');
+  const hasDescription = await db.schema.hasColumn('maintenance_requests', 'description');
+
+  await db.schema.alterTable('maintenance_requests', (table) => {
+    if (!hasDate) table.string('date');
+    if (!hasPeriod) table.string('period');
+    if (!hasAddress) table.string('address');
+    if (!hasCity) table.string('city');
+    if (!hasDescription) table.text('description');
+  });
+} else {
+  await db.schema.createTable('maintenance_requests', (table) => {
+    table.increments('id').primary();
+    table.integer('contact_id').references('id').inTable('whatsapp_contacts');
+    table.string('wa_id').notNullable();
+    table.text('raw_message').notNullable(); // pode manter para histórico bruto, opcional
+    table.string('date');
+    table.string('period');
+    table.string('address');
+    table.string('city');
+    table.text('description');
+    table.string('status').notNullable().defaultTo('pending');
+    table.timestamp('created_at').defaultTo(db.fn.now());
+  });
+}
 
   console.log('Migrations concluídas');
 }
