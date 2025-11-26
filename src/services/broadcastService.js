@@ -2,8 +2,8 @@
 const db = require('../database/db');
 const { client } = require('../whatsapp/whatsapp');
 const { MessageMedia } = require('whatsapp-web.js');
-const path = require('path');
-const fs = require('fs');
+const path = require('node:path');
+const fs = require('node:fs');
 
 const MIN_DELAY_MS = 4000;
 const MAX_DELAY_MS = 9000;
@@ -143,5 +143,6 @@ async function createAndSendBroadcast({
 module.exports = {
   createAndSendBroadcast
 };
+
 
 
