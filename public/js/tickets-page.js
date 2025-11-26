@@ -1,4 +1,4 @@
-// public/js/tickets-page.js
+// public/js/tickets-page.js 
 document.addEventListener('DOMContentLoaded', () => {
   const humanBody = document.getElementById('ticketsHumanBody');
   const maintBody = document.getElementById('ticketsMaintBody');
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${displayName}</td>
             <td>${item.number || ''}</td>
             <td>${item.wa_id}</td>
-            <td>${item.description || item.raw_message || ''}</td>
+            <td>${item.description || ''}</td>
             <td>${item.date || ''}</td>
             <td>${item.period || ''}</td>
             <td>${item.address || ''}</td>
