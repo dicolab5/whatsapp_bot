@@ -1,4 +1,4 @@
-// src/database/migrations.js 
+// src/database/migrations.js  
 require('dotenv').config();
 const db = require('./db');
 
@@ -89,6 +89,51 @@ if (hasMaintenance) {
     table.text('description');
     table.string('status').notNullable().defaultTo('pending');
     table.timestamp('created_at').defaultTo(db.fn.now());
+  });
+}
+
+// Tabela de tópicos de manutenção
+const hasTopics = await db.schema.hasTable('whatsapp_topics');
+if (!hasTopics) {
+  await db.schema.createTable('whatsapp_topics', (table) => {
+    table.increments('id').primary();
+    table.string('name').notNullable();      // ex: "Portões eletrônico"
+    table.boolean('active').defaultTo(true);
+    table.integer('sort_order').defaultTo(0);
+    table.timestamp('created_at').defaultTo(db.fn.now());
+    table.timestamp('updated_at').defaultTo(db.fn.now());
+  });
+}
+
+// Tabela de tipos de serviço (instalação / manutenção) por tópico
+const hasServices = await db.schema.hasTable('whatsapp_topic_services');
+if (!hasServices) {
+  await db.schema.createTable('whatsapp_topic_services', (table) => {
+    table.increments('id').primary();
+    table
+      .integer('topic_id')
+      .unsigned()
+      .references('id')
+      .inTable('whatsapp_topics')
+      .onDelete('CASCADE');
+    table.enu('service_type', ['instalacao', 'manutencao']).notNullable();
+    table.boolean('active').defaultTo(true);
+    table.integer('sort_order').defaultTo(0);
+    table.timestamp('created_at').defaultTo(db.fn.now());
+    table.timestamp('updated_at').defaultTo(db.fn.now());
+  });
+}
+
+// Tabela de promoções diárias
+const hasWhatsAppPromo = await db.schema.hasTable('whatsapp_promo');
+if (!hasWhatsAppPromo) {
+  await db.schema.createTable('whatsapp_promo', (table) => {
+    table.increments('id').primary();
+    table.string('title').notNullable();
+    table.text('description').notNullable();
+    table.boolean('active').defaultTo(true);
+    table.timestamp('created_at').defaultTo(db.fn.now());
+    table.timestamp('updated_at').defaultTo(db.fn.now());
   });
 }
 
