@@ -1,3 +1,4 @@
+// src/server.js
 require('dotenv').config();
 const express = require('express');
 const path = require('path'); // <-- ADICIONADO
@@ -9,6 +10,9 @@ const broadcastRoutes = require('./routes/broadcastRoutes');
 const authRoutes = require('./routes/authRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const whatsappRoutes = require('./routes/whatsappRoutes');
+const topicsRoutes = require('./routes/topicsRoutes');
+const servicesRoutes = require('./routes/servicesRoutes');
+const promoRoutes = require('./routes/promoRoutes');
 const AuthController = require('./controllers/AuthController');
 const { layout } = require('./utils/layout');
 const { getBotStatus, syncContacts } = require('./whatsapp/whatsapp');
@@ -72,6 +76,13 @@ app.get('/tickets', requireAdmin, (req, res) =>
 app.get('/qr', requireAdmin, (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'qr.html'))
 );
+app.get('/topics', requireAdmin, (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'topics.html'))
+);
+app.get('/promos', requireAdmin, (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'promos.html'))
+);
+
 
 // Página de sincronização de contatos com feedback detalhado
 app.get('/sync-contacts', requireAdmin, async (req, res) => {
@@ -151,6 +162,9 @@ app.use('/api/contacts', requireAdmin, contactRoutes);
 app.use('/api/broadcast', requireAdmin, broadcastRoutes);
 app.use('/api/tickets', requireAdmin, ticketRoutes);
 app.use('/api/whatsapp', requireAdmin, whatsappRoutes);
+app.use('/api/topics', requireAdmin, topicsRoutes);
+app.use('/api/services', requireAdmin, servicesRoutes);
+app.use('/api/promos', requireAdmin, promoRoutes);
 
 // Inicialização
 async function start() {
