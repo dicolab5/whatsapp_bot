@@ -11,11 +11,6 @@ async function getById(id) {
   return await db(tableName).where({ id }).first();
 }
 
-// async function create(data) {
-//   const [id] = await db(tableName).insert(data);
-//   return getById(id);
-// }
-
 async function create(data) {
   const [newPromo] = await db(tableName).insert(data).returning('*');
   return newPromo;

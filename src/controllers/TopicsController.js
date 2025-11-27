@@ -9,18 +9,6 @@ async function list(req, res) {
   }
 }
 
-// async function create(req, res) {
-//   try {
-//     const { name, active = true, sort_order = 0 } = req.body;
-//     if (!name) return res.status(400).json({ error: 'O nome é obrigatório' });
-
-//     const [id] = await Topics.createTopic({ name, active, sort_order });
-//     res.status(201).json({ id });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Erro ao criar tópico' });
-//   }
-// }
-
 async function create(req, res) {
   try {
     console.log('Dados recebidos:', req.body);  // <-- Debug

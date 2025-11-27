@@ -27,25 +27,4 @@ router.get('/stop-bot', async (req, res) => {
   }
 });
 
-// // Sync contacts
-// router.get('/sync-contacts', async (req, res) => {
-//   try {
-//     await syncContacts();
-//     res.json({ message: 'Sincronização concluída.' });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Erro ao sincronizar: ' + err.message });
-//   }
-// });
-
-// // Sync contacts
-// router.get('/sync-contacts', async (req, res) => {
-//   try {
-//     await syncContacts();
-//     res.json({ message: 'Sincronização iniciada' });
-//   } catch(err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
-
 module.exports = router;
