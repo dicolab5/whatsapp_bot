@@ -11,7 +11,7 @@ window.addEventListener('resize', resize);
 const letters = 'アァカサタナハマヤャラワイィキシチニヒミリヰウゥクスツヌフムユュルヲエェケセテネヘメレヱオォコソトノホモヨョロヲン0123456789@#$%^&*ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const fontSize = 16;
 const columns = canvas.width / fontSize;
-// Safe: PRNG is used only for non-security visual effects (Matrix animation)
+// NOSONAR - Math.random() usado apenas para animação visual (não-crítico)
 const drops = Array(Math.floor(columns)).fill(1);
 
 let animationInterval = null;
@@ -25,10 +25,10 @@ function draw() {
   ctx.font = fontSize + 'px monospace';
 
   for (let i = 0; i < drops.length; i++) {
-    // Safe: PRNG is used only for non-security visual effects (Matrix animation)
+    // NOSONAR - Math.random() usado apenas para animação visual (não-crítico)
     const text = letters[Math.floor(Math.random() * letters.length)];
     ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-    // Safe: PRNG is used only for non-security visual effects (Matrix animation)
+    // NOSONAR - Math.random() usado apenas para animação visual (não-crítico)
     if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
       drops[i] = 0;
     }
@@ -73,4 +73,5 @@ if (savedTheme === 'on') {
   startMatrix();
 } else {
   stopMatrix();
+
 }
