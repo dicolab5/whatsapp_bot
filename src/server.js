@@ -64,7 +64,7 @@ app.get('/logout', (req, res) => {
 });
 
 // Páginas protegidas
-app.get('/', requireAdmin, (req, res) =>
+app.get('/', (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'))
 );
 app.get('/contacts', requireAdmin, (req, res) =>
@@ -84,6 +84,9 @@ app.get('/topics', requireAdmin, (req, res) =>
 );
 app.get('/promos', requireAdmin, (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'promos.html'))
+);
+app.get('/painel', requireAdmin, (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'painel.html'))
 );
 
 
@@ -179,5 +182,5 @@ async function start() {
     console.log(`Acesso externo: http://whatsappbot.ddns.net:${PORT}`);
   });
 }
-start().catch(err => console.error('Erro ao iniciar aplicação:', err));
 
+start().catch(err => console.error('Erro ao iniciar aplicação:', err));
