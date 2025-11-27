@@ -6,13 +6,13 @@ const AuthController = {
     const adminPass = process.env.ADMIN_PASS || 'admin';
     if (username === adminUser && password === adminPass) {
       req.session.isAdmin = true;
-      return res.redirect('/');
+      return res.redirect('/painel');
     }
     return res.redirect('/login');
   },
 
   logout(req, res) {
-    req.session.destroy(() => res.redirect('/login'));
+    req.session.destroy(() => res.redirect('/')); //antes estva /login
   }
 };
 
