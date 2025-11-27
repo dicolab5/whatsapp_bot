@@ -17,10 +17,11 @@ const AuthController = require('./controllers/AuthController');
 const { layout } = require('./utils/layout');
 const { syncContacts } = require('./whatsapp/whatsapp');
 const { getBotStatus } = require('./whatsapp/client');
-//const { syncContacts, getBotStatus } = require('./whatsapp/whatsapp');
 const db = require('./database/db');
 
 const app = express();
+// Remove o header X-Powered-By
+app.disable('x-powered-by');
 const PORT = process.env.PORT || 3000;
 
 // Serve arquivos estáticos corretamente do /public
@@ -179,3 +180,4 @@ async function start() {
   });
 }
 start().catch(err => console.error('Erro ao iniciar aplicação:', err));
+
