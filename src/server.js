@@ -1,7 +1,7 @@
-// src/server.js
+// src/server.js 
 require('dotenv').config();
 const express = require('express');
-const path = require('path'); // <-- ADICIONADO
+const path = require('node:path'); // <-- ADICIONADO
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const runMigrations = require('./database/migrations');
@@ -15,7 +15,9 @@ const servicesRoutes = require('./routes/servicesRoutes');
 const promoRoutes = require('./routes/promoRoutes');
 const AuthController = require('./controllers/AuthController');
 const { layout } = require('./utils/layout');
-const { getBotStatus, syncContacts } = require('./whatsapp/whatsapp');
+const { syncContacts } = require('./whatsapp/whatsapp');
+const { getBotStatus } = require('./whatsapp/client');
+//const { syncContacts, getBotStatus } = require('./whatsapp/whatsapp');
 const db = require('./database/db');
 
 const app = express();
@@ -125,19 +127,20 @@ app.post('/admin/clear-contacts', requireAdmin, async (req, res) => {
     if (!count.total) {
       const content = `
         <div class="alert alert-info">
-          <h4>Sem contatos para remover</h4>
-          <p>A tabela de contatos já está vazia.</p>
-          <a href="/" class="btn btn-primary">Voltar ao painel</a>
+         <h4>Sem contatos para remover</h4>
+         <p>A tabela de contatos já está vazia.</p>
+         <a href="/" class="btn btn-primary">Voltar ao painel</a>
         </div>`;
       return res.send(layout({ title: 'Nada para remover', content }));
     }
 
-    await db('whatsapp_contacts').del();
+    // TRUNCATE mais eficiente que substitui o .del()
+    await db.raw(`TRUNCATE TABLE whatsapp_contacts RESTART IDENTITY CASCADE;`);
 
     const content = `
       <div class="alert alert-warning">
         <h4>Contatos limpos</h4>
-        <p>Todos os contatos foram removidos da tabela <code>whatsapp_contacts</code>.</p>
+        <p>Tabela <code>whatsapp_contacts</code> foi truncada com sucesso (IDs reiniciados).</p>
         <a href="/sync-contacts" class="btn btn-primary">Sincronizar contatos novamente</a>
         <a href="/" class="btn btn-link">Voltar ao painel</a>
       </div>`;
