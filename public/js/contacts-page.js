@@ -44,14 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // form.addEventListener('submit', function(e) {
-  //   const selected = Array.from(document.querySelectorAll('.contact-checkbox')).filter(cb => cb.checked);
-  //   if (selected.length === 0) {
-  //     e.preventDefault();
-  //     alert('Selecione ao menos um contato para criar a campanha.');
-  //   }
-  // });
-
   form.addEventListener('submit', function(e) {
   e.preventDefault(); // previne envio padrão
 
