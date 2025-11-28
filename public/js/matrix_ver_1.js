@@ -11,22 +11,8 @@ window.addEventListener('resize', resize);
 const letters = 'アァカサタナハマヤャラワイィキシチニヒミリヰウゥクスツヌフムユュルヲエェケセテネヘメレヱオォコソトノホモヨョロヲン0123456789@#$%^&*ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const fontSize = 16;
 const columns = canvas.width / fontSize;
+// NOSONAR - Math.random() usado apenas para animação visual (não-crítico)
 const drops = Array(Math.floor(columns)).fill(1);
-
-// Função segura: retorna inteiro aleatório no intervalo [0, max)
-function randomInt(max) {
-  const array = new Uint32Array(1);
-  (window.crypto || window.msCrypto).getRandomValues(array);
-  return array[0] % max;
-}
-
-// Função segura: retorna float [0, 1)
-function randomFloat() {
-  const array = new Uint32Array(1);
-  (window.crypto || window.msCrypto).getRandomValues(array);
-  // Divide por o maior valor possível para normalizar
-  return array[0] / 0xFFFFFFFF;
-}
 
 let animationInterval = null;
 let matrixActive = false;
@@ -39,9 +25,11 @@ function draw() {
   ctx.font = fontSize + 'px monospace';
 
   for (let i = 0; i < drops.length; i++) {
-    const text = letters[randomInt(letters.length)];
+    // NOSONAR - Math.random() usado apenas para animação visual (não-crítico)
+    const text = letters[Math.floor(Math.random() * letters.length)];
     ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-    if (drops[i] * fontSize > canvas.height && randomFloat() > 0.975) {
+    // NOSONAR - Math.random() usado apenas para animação visual (não-crítico)
+    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
       drops[i] = 0;
     }
     drops[i]++;
@@ -54,7 +42,7 @@ function startMatrix() {
     animationInterval = setInterval(draw, 33);
     canvas.style.display = 'block';
     toggleButton.textContent = 'Desativar Matrix';
-    localStorage.setItem('matrixTheme', 'on');
+    localStorage.setItem('matrixTheme', 'on'); // salvar estado
   }
 }
 
@@ -66,7 +54,7 @@ function stopMatrix() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.style.display = 'none';
     toggleButton.textContent = 'Ativar Matrix';
-    localStorage.setItem('matrixTheme', 'off');
+    localStorage.setItem('matrixTheme', 'off'); // salvar estado
   }
 }
 

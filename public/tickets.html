@@ -79,6 +79,80 @@
       </div>
     </div>
   </main>
+
+  <!-- Modal genérico para venda/assistência - remover se der ruim-->
+  <div class="modal fade" id="ticketModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="ticketModalForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="ticketModalTitle">Registrar atendimento</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="ticketModalType" />
+            <input type="hidden" id="ticketModalTicketId" />
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Nome do cliente</label>
+                <input type="text" class="form-control" id="customerName" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">CPF do cliente</label>
+                <input type="text" class="form-control" id="customerCpf" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Vendedor / Atendente (ID)</label>
+                <input type="number" class="form-control" id="vendorId" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Forma de pagamento</label>
+                <select class="form-select" id="paymentMethod" required>
+                  <option value="">Selecione</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="pix">PIX</option>
+                  <option value="debito">Cartão débito</option>
+                  <option value="credito">Cartão crédito</option>
+                </select>
+              </div>
+
+              <!-- Campos específicos -->
+              <div class="col-md-6 human-only">
+                <label class="form-label">Desconto (R$)</label>
+                <input type="number" step="0.01" class="form-control" id="discount" value="0" />
+              </div>
+              <div class="col-md-6 human-only">
+                <label class="form-label">Total da venda (R$)</label>
+                <input type="number" step="0.01" class="form-control" id="saleTotal" />
+              </div>
+
+              <div class="col-12 maint-only d-none">
+                <label class="form-label">Descrição do serviço realizado</label>
+                <textarea class="form-control" id="workDescription" rows="2"></textarea>
+              </div>
+              <div class="col-md-4 maint-only d-none">
+                <label class="form-label">Valor mão de obra (R$)</label>
+                <input type="number" step="0.01" class="form-control" id="laborValue" />
+              </div>
+              <div class="col-md-4 maint-only d-none">
+                <label class="form-label">Total de produtos (R$)</label>
+                <input type="number" step="0.01" class="form-control" id="productsTotal" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar e concluir</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- Bootstrap bundle JS (necessário para modal) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
   <script src="/js/tickets-page.js"></script>
   <canvas id="matrix"></canvas>
   <script src="/js/matrix.js"></script>
