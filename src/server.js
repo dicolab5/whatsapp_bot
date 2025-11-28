@@ -14,6 +14,13 @@ const topicsRoutes = require('./routes/topicsRoutes');
 const servicesRoutes = require('./routes/servicesRoutes');
 const promoRoutes = require('./routes/promoRoutes');
 const AuthController = require('./controllers/AuthController');
+const salesRoutes = require('./routes/salesRoutes');
+const assistancesRoutes = require('./routes/assistancesRoutes');
+const productRoutes = require('./routes/productRoutes');
+const vendorRoutes = require('./routes/vendorRoutes');
+const reportRoutes = require('./routes/reportRoutes');
+
+
 const { layout } = require('./utils/layout');
 const { syncContacts } = require('./whatsapp/whatsapp');
 const { getBotStatus } = require('./whatsapp/client');
@@ -26,6 +33,8 @@ const PORT = process.env.PORT || 3000;
 
 // Serve arquivos estáticos corretamente do /public
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+app.use(express.json()); // garantir parser de JSON
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -89,6 +98,13 @@ app.get('/painel', requireAdmin, (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'painel.html'))
 );
 
+app.get('/cadastros', requireAdmin, (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'cadastros.html'))
+);
+
+app.get('/dashboard', requireAdmin, (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'))
+);
 
 // Página de sincronização de contatos com feedback detalhado
 app.get('/sync-contacts', requireAdmin, async (req, res) => {
@@ -172,6 +188,11 @@ app.use('/api/whatsapp', requireAdmin, whatsappRoutes);
 app.use('/api/topics', requireAdmin, topicsRoutes);
 app.use('/api/services', requireAdmin, servicesRoutes);
 app.use('/api/promos', requireAdmin, promoRoutes);
+app.use('/api/sales', requireAdmin, salesRoutes);
+app.use('/api/assistances', requireAdmin, assistancesRoutes);
+app.use('/api/products', requireAdmin, productRoutes);
+app.use('/api/vendors', requireAdmin, vendorRoutes);
+app.use('/api/reports', requireAdmin, reportRoutes);
 
 // Inicialização
 async function start() {

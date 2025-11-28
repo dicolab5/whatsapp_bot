@@ -1,4 +1,4 @@
-// src/controllers/TicketController.js
+// src/controllers/TicketController.js 
 const Ticket = require('../models/Ticket');
 const Maintenance = require('../models/Maintenance');
 const { layout } = require('../utils/layout');

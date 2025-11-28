@@ -1,4 +1,4 @@
-// src/models/Ticket.js
+// src/models/Ticket.js 
 const db = require('../database/db');
 
 const Ticket = {
