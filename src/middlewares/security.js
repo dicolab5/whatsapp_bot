@@ -118,42 +118,208 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
   }));
 
   const csrfProtection = csurf({
-  cookie: {
-    httpOnly: true,      // aqui pode voltar a ser httpOnly
-    sameSite: "Strict",
-    secure: IN_PROD
-  }
-  
-});
+    cookie: {
+      httpOnly: false,        // JS consegue ler
+      sameSite: "Strict",
+      secure: IN_PROD
+    }
+  });
 
-app.use((req, res, next) => {
-  if (
-    req.path === "/api/auth/login" ||
-    req.path === "/api/users/register" ||
-    req.path === "/api/subscriptions/webhook/pagseguro"
-  ) {
-    return next();
-  }
+  app.use((req, res, next) => {
+    // Métodos seguros
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      return next();
+    }
 
-  // LOG AQUI - antes do csrf validar
-  if (req.method === 'POST' && req.path === '/api/subscriptions/checkout') {
-    console.log('🔍 CSRF DEBUG - ANTES DO CSURF:');
-    console.log('Cookie _csrf:', req.cookies?._csrf);
-    console.log('Header CSRF-Token:', req.headers['csrf-token']);
-    console.log('---');
-  }
+    // Rotas livres
+    if (
+      req.path === "/api/auth/login" ||
+      req.path === "/api/users/register" ||
+      req.path === "/api/subscriptions/webhook/pagseguro"
+    ) {
+      return next();
+    }
 
-  return csrfProtection(req, res, next);
-});
-
-// Endpoint correto para fornecer token ao frontend
-app.get('/api/csrf-token', (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
-});
-  
+    return csrfProtection(req, res, next);
+  });
 }
 
 
+// // src/middlewares/security.js
+// function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
+//   app.use(helmet.contentSecurityPolicy({
+//     useDefaults: true,
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+//       scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
+//       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+//       styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
+//       imgSrc: ["'self'", "data:"],
+//       connectSrc: ["'self'"],
+//       formAction: ["'self'"],
+//       frameAncestors: ["'none'"],
+//       objectSrc: ["'none'"],
+//       fontSrc: ["'self'", "https://cdn.jsdelivr.net"]
+//     }
+//   }));
+
+//   // const csrfProtection = csurf({
+//   //   cookie: {
+//   //     httpOnly: false,        // importante: JS consegue ler
+//   //     sameSite: "Lax",
+//   //     secure: IN_PROD
+//   //   }
+//   // });
+
+//   // app.use((req, res, next) => {
+//   //   // Métodos seguros não precisam de CSRF
+//   //   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+//   //     return next();
+//   //   }
+
+//   //   // Rotas liberadas (login, cadastro, webhook)
+//   //   if (
+//   //     req.path === "/api/auth/login" ||
+//   //     req.path === "/api/users/register" ||
+//   //     req.path === "/api/subscriptions/webhook/pagseguro"
+//   //   ) {
+//   //     return next();
+//   //   }
+
+//   //   // Demais POST/PUT/DELETE passam pelo csurf
+//   //   return csrfProtection(req, res, next);
+//   // });
+// }
+
+
+// //tentativa de middleware csrf para funcionar o subscription
+// function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
+//   // CSP (como você já tem)
+//   app.use(helmet.contentSecurityPolicy({
+//     useDefaults: true,
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+//       scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
+//       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+//       styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
+//       imgSrc: ["'self'", "data:"],
+//       connectSrc: ["'self'"],
+//       formAction: ["'self'"],
+//       frameAncestors: ["'none'"],
+//       objectSrc: ["'none'"],
+//       fontSrc: ["'self'", "https://cdn.jsdelivr.net"]
+//     }
+//   }));
+
+  // const csrfProtection = csurf({
+  //   cookie: {
+  //     httpOnly: false,
+  //     sameSite: "Strict",
+  //     secure: IN_PROD
+  //   }
+  // });
+
+  // app.use((req, res, next) => {
+  //   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+  //     return next();
+  //   }
+
+  //   if (
+  //     req.path === "/api/auth/login" ||
+  //     req.path === "/api/users/register" ||
+  //     req.path === "/api/subscriptions/webhook/pagseguro"
+  //   ) {
+  //     return next();
+  //   }
+
+  //   return csrfProtection(req, res, next);
+  // });
+
+
+// function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
+//   // CSP — igual ao seu, porém sem bloquear /api
+//   app.use(helmet.contentSecurityPolicy({
+//     useDefaults: true,
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+//       scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
+//       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+//       styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
+//       imgSrc: ["'self'", "data:"],
+//       connectSrc: ["'self'"],            // <---- corrigido
+//       formAction: ["'self'"],
+//       frameAncestors: ["'none'"],
+//       objectSrc: ["'none'"],
+//       fontSrc: ["'self'", "https://cdn.jsdelivr.net"]
+//     }   
+    
+//   }));
+
+//   // Configuração CSRF
+//   const csrfProtection = csurf({
+//     cookie: {
+//       httpOnly: true,
+//       sameSite: "Strict",
+//       secure: IN_PROD
+//     }
+//   });
+
+//   // // 🔥 Nova rota que entrega O ÚNICO token válido
+//   // app.get("/csrf-token", csrfProtection, (req, res) => {
+//   //   res.cookie("XSRF-TOKEN", req.csrfToken(), {
+//   //     sameSite: "Strict",
+//   //     secure: IN_PROD
+//   //   });
+//   //   res.json({ csrfToken: req.csrfToken() });
+//   // });
+
+//   // // 🔥 Middleware que aplica CSRF APENAS em métodos perigosos
+//   // app.use((req, res, next) => {
+//   //   // Métodos que NÃO precisam de CSRF
+//   //   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+//   //     return next();
+//   //   }
+
+//   //   // Rotas que devem ser livres de CSRF (login, register, webhook PagBank)
+//   //   if (
+//   //     req.path === "/api/auth/login" ||
+//   //     req.path === "/api/users/register" ||
+//   //     req.path === "/api/subscriptions/webhook/pagseguro"
+//   //   ) {
+//   //     return next();
+//   //   }
+
+//   //   // Tudo que altera dados → protege
+//   //   return csrfProtection(req, res, next);
+//   // });
+
+//   // 🔥 Middleware que aplica CSRF APENAS em métodos perigosos
+//   app.use((req, res, next) => {
+//   console.log('CSRF MIDDLEWARE:', req.method, req.path); // 👈 log
+
+//   // Métodos que NÃO precisam de CSRF
+//   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+//     return next();
+//   }
+
+//   // Rotas livres de CSRF
+//   if (
+//     req.path === "/api/auth/login" ||
+//     req.path === "/api/users/register" ||
+//     req.path === "/api/subscriptions/webhook/pagseguro"
+//   ) {
+//     console.log('CSRF SKIP:', req.method, req.path); // 👈 log
+//     return next();
+//   }
+
+//   console.log('CSRF APPLY:', req.method, req.path); // 👈 log
+//   return csrfProtection(req, res, next);
+// });
+ 
+// }
 
 module.exports = {
   securityMiddleware,
