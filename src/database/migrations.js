@@ -29,13 +29,41 @@ async function runMigrations() {
     }
   }
 
-  // Garantir UNIQUE (user_id, wa_id) em whatsapp_contacts para multi-usuário
+  // // Garantir UNIQUE (user_id, wa_id) em whatsapp_contacts para multi-usuário
+  // try {
+  //   const hasContacts = await db.schema.hasTable('whatsapp_contacts');
+  //   if (hasContacts) {
+  //     await db.schema.alterTable('whatsapp_contacts', (table) => {
+  //       // remover unique antigo só em wa_id, se ainda existir em algum ambiente
+  //       table.dropUnique(['wa_id'], 'whatsapp_contacts_wa_id_unique');
+  //       // garantir unique composto (user_id, wa_id)
+  //       table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
+  //     });
+  //   }
+  // } catch (err) {
+  //   console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
+  // }
+  // Garantir user_id e UNIQUE (user_id, wa_id) em whatsapp_contacts para multi-usuário
   try {
     const hasContacts = await db.schema.hasTable('whatsapp_contacts');
     if (hasContacts) {
+      const hasUserIdCol = await db.schema.hasColumn('whatsapp_contacts', 'user_id');
+
       await db.schema.alterTable('whatsapp_contacts', (table) => {
+        if (!hasUserIdCol) {
+          table
+            .integer('user_id')
+            .unsigned()
+            .references('id')
+            .inTable('users')
+            .onDelete('CASCADE')
+            .index()
+            .nullable(); // deixa nullable por enquanto
+        }
+
         // remover unique antigo só em wa_id, se ainda existir em algum ambiente
         table.dropUnique(['wa_id'], 'whatsapp_contacts_wa_id_unique');
+
         // garantir unique composto (user_id, wa_id)
         table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
       });
@@ -379,7 +407,42 @@ async function runMigrations() {
   // Adicionar user_id em tabelas que precisam referenciar o usuário dono da conta   |
   //==================================================================================
 
-  const tablesToUpdate = [
+  // const tablesToUpdate = [
+  //   'whatsapp_contacts',
+  //   'whatsapp_broadcasts', 
+  //   'maintenance_requests',
+  //   'whatsapp_promo',
+  //   'sales',
+  //   'assistances',
+  //   'vendors',
+  //   'whatsapp_broadcast_logs',
+  //   'whatsapp_topic_services',
+  //   'whatsapp_topics',
+  //   'products'
+  // ];
+
+  // for (const tableName of tablesToUpdate) {
+  //   try {
+  //     const hasUserId = await db.schema.hasColumn(tableName, 'user_id');
+  //     if (!hasUserId) {
+  //       await db.schema.alterTable(tableName, (table) => {
+  //         table.integer('user_id')
+  //           .unsigned()
+  //           .notNullable() //notNullable : como conf normal
+  //           .references('id')
+  //           .inTable('users')
+  //           .onDelete('CASCADE')
+  //           .index();
+  //       });
+  //       console.log(`✅ Coluna user_id adicionada na tabela ${tableName}`);
+  //     } else {
+  //       console.log(`ℹ️  Tabela ${tableName} já tem user_id`);
+  //     }
+  //   } catch (err) {
+  //     console.warn(`⚠️  Erro ao processar tabela ${tableName}:`, err.message);
+  //   }
+  // }
+    const tablesToUpdate = [
     'whatsapp_contacts',
     'whatsapp_broadcasts', 
     'maintenance_requests',
@@ -398,13 +461,15 @@ async function runMigrations() {
       const hasUserId = await db.schema.hasColumn(tableName, 'user_id');
       if (!hasUserId) {
         await db.schema.alterTable(tableName, (table) => {
-          table.integer('user_id')
+          table
+            .integer('user_id')
             .unsigned()
-            .notNullable() //notNullable : como conf normal
+            // .notNullable()  // ⚠️ tira isso aqui
             .references('id')
             .inTable('users')
             .onDelete('CASCADE')
-            .index();
+            .index()
+            .nullable();      // deixa nullable pra não quebrar com dados antigos
         });
         console.log(`✅ Coluna user_id adicionada na tabela ${tableName}`);
       } else {
@@ -414,6 +479,7 @@ async function runMigrations() {
       console.warn(`⚠️  Erro ao processar tabela ${tableName}:`, err.message);
     }
   }
+
 
     // Tabela de estados dos usuários no atendimento via WhatsApp
     const hasUserStates = await db.schema.hasTable('whatsapp_user_states');
@@ -446,5 +512,6 @@ if (require.main === module) {
 }
 
 module.exports = runMigrations;
+
 
 
