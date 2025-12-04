@@ -98,90 +98,8 @@ function securityMiddleware(app, { IN_PROD }) {
   });
 }
 
-
-// function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
-//   // CSP global
-//   // app.use(helmet.contentSecurityPolicy({
-//   //   useDefaults: true,
-//   //   directives: {
-//   //     defaultSrc: ["'self'"],
-//   //     scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//   //     scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net", "/js"],
-//   //     styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//   //     styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
-//   //     imgSrc: ["'self'", "data:"],
-//   //     connectSrc: ["'self'", "https://cdn.jsdelivr.net", "/js"],
-//   //     formAction: ["'self'"],
-//   //     frameAncestors: ["'none'"],
-//   //     objectSrc: ["'none'"],
-//   //     fontSrc: ["'self'", "https://cdn.jsdelivr.net"]
-//   //   }
-//   // }));
-
-//   app.use(helmet.contentSecurityPolicy({
-//     useDefaults: true,
-//     directives: {
-//       defaultSrc: ["'self'"],
-//       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//       scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net"],  // removido "/js"
-//       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//       styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
-//       imgSrc: ["'self'", "data:"],
-//       connectSrc: ["'self'", "https://cdn.jsdelivr.net"],       // removido "/js"
-//       formAction: ["'self'"],
-//       frameAncestors: ["'none'"],
-//       objectSrc: ["'none'"],
-//       fontSrc: ["'self'", "https://cdn.jsdelivr.net"]
-//     }
-//   }));
-
-//   const csrfProtection = csurf({
-//     cookie: {
-//       httpOnly: true,
-//       sameSite: 'Strict',
-//       secure: IN_PROD
-//     }
-//   });
-
-//   // ✅ ROTA QUE FALTAVA — AGORA FUNCIONA
-//   app.get("/csrf-token", (req, res) => {
-//     try {
-//       res.json({ csrfToken: req.csrfToken() });
-//     } catch (e) {
-//       res.status(500).json({ error: "Unable to generate CSRF token" });
-//     }
-//   });
-
-//   // Gera token para GET
-//   app.use((req, res, next) => {
-//     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-//       try {
-//         csrfProtection(req, res, () => {
-//           res.cookie("XSRF-TOKEN", req.csrfToken(), {
-//             sameSite: 'Strict',
-//             secure: IN_PROD
-//           });
-//           next();
-//         });
-//       } catch (e) {
-//         next();
-//       }
-//       return;
-//     }
-
-//     if (
-//       (req.method === 'POST' && req.path === '/api/auth/login') ||
-//       (req.method === 'POST' && req.path === '/api/users/register')
-//     ) {
-//       return next();
-//     }
-
-//     return csrfProtection(req, res, next);
-//   });
-// }
-
 function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
-  // CSP — igual ao seu, porém sem bloquear /api
+  // CSP global
   app.use(helmet.contentSecurityPolicy({
     useDefaults: true,
     directives: {
@@ -191,7 +109,7 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
       styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'"],            // <---- corrigido
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"],
       objectSrc: ["'none'"],
@@ -199,7 +117,7 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
     }
   }));
 
-  // Configuração CSRF
+  // CSRF com cookie seguro
   const csrfProtection = csurf({
     cookie: {
       httpOnly: true,
@@ -208,33 +126,42 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
     }
   });
 
-  // 🔥 Nova rota que entrega O ÚNICO token válido
-  app.get("/csrf-token", csrfProtection, (req, res) => {
-    res.cookie("XSRF-TOKEN", req.csrfToken(), {
-      sameSite: "Strict",
-      secure: IN_PROD
-    });
-    res.json({ csrfToken: req.csrfToken() });
+  // Rotas que NÃO exigem CSRF
+  const CSRF_EXEMPT = [
+    "/api/auth/login",
+    "/api/users/register"
+  ];
+
+  // Middleware principal
+  app.use((req, res, next) => {
+    // Ignorar CSRF para rotas isentas
+    if (CSRF_EXEMPT.includes(req.path)) {
+      return next();
+    }
+
+    // GETs geram token automaticamente
+    if (req.method === "GET") {
+      csrfProtection(req, res, () => {
+        res.cookie("XSRF-TOKEN", req.csrfToken(), {
+          sameSite: "Strict",
+          secure: IN_PROD
+        });
+        next();
+      });
+      return;
+    }
+
+    // Para POST/PUT/DELETE — exigir header X-CSRF-Token
+    csrfProtection(req, res, next);
   });
 
-  // 🔥 Middleware que aplica CSRF APENAS em métodos perigosos
-  app.use((req, res, next) => {
-
-    // Métodos que NÃO precisam de CSRF
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-      return next();
+  // Rota utilitária para debug e frontend
+  app.get("/csrf-token", (req, res) => {
+    try {
+      res.json({ csrfToken: req.csrfToken() });
+    } catch {
+      res.status(500).json({ error: "Unable to generate CSRF token" });
     }
-
-    // Rotas que devem ser livres de CSRF (login, register)
-    if (
-      req.path === "/api/auth/login" ||
-      req.path === "/api/users/register"
-    ) {
-      return next();
-    }
-
-    // Tudo que altera dados → protege
-    return csrfProtection(req, res, next);
   });
 }
 
@@ -242,3 +169,4 @@ module.exports = {
   securityMiddleware,
   csrfMiddleware
 };
+
