@@ -155,8 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // RENOVAR ASSINATURA (placeholder)
     // ------------------------------------
     document.getElementById("renewPlan").onclick = () => {
-       // alert("Página de pagamento em desenvolvimento!"); // incrementar depois para redirecionar para subscription.html
-        window.location.href = "/subscription.html";
+        alert("Página de pagamento em desenvolvimento!");
     };
 
 });

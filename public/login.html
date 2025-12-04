@@ -47,8 +47,6 @@
           <div id="loginForm">
             <h1 class="h5 mb-3 text-center">Login</h1>
             <form method="POST" action="/api/auth/login" id="loginFormSubmit">
-              <input type="hidden" id="csrfToken" name="_csrf">
-
               <div class="mb-3">
                 <label class="form-label">Usuário</label>
                 <input type="text" name="username" class="form-control" required autofocus />
@@ -75,7 +73,6 @@
   <canvas id="matrix"></canvas>
   <script src="/js/matrix.js"></script>
   <script src="/js/login.js"></script>
-  <script src="/js/login_csrf_token.js"></script>
 
 </body>
 
