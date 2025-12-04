@@ -1,65 +1,153 @@
-let qrInstance = null;
-let clientActive = false;
+// public/js/qr-page.js
+// ======================
+// Variáveis globais
+// ======================
+let userId = null;
+let csrfToken = null;
 
-async function fetchQr() {
+// ======================
+// Carregar token CSRF
+// ======================
+async function loadCsrf() {
   try {
-    // Corrigido endpoint para o prefixo correto
-    const res = await fetch('/api/whatsapp/qr');
+    const res = await fetch("/csrf-token");
     const data = await res.json();
-
-    const statusEl = document.getElementById('qr-status');
-    const qrDiv = document.getElementById('qrcode');
-
-    clientActive = !!data.qr || data.ready;
-
-    document.getElementById('btnToggleQr').textContent =
-      clientActive ? 'Parar bot' : 'Iniciar geração do QR code';
-
-    if (data.ready) {
-      statusEl.textContent = 'WhatsApp conectado! Você já pode usar o painel normalmente.';
-      qrDiv.innerHTML = '';
-      return;
-    }
-
-    if (!data.qr) {
-      statusEl.textContent = 'Aguardando QR code do WhatsApp...';
-      qrDiv.innerHTML = '';
-      return;
-    }
-
-    statusEl.textContent = 'QR code ativo. Escaneie com o app do WhatsApp.';
-
-    qrDiv.innerHTML = '';
-    qrInstance = new QRCode(qrDiv, {
-      text: data.qr,
-      width: 256,
-      height: 256,
-    });
-
+    csrfToken = data.csrfToken;
   } catch (err) {
-    const statusEl = document.getElementById('qr-status');
-    statusEl.textContent = 'Erro ao carregar QR. Tente atualizar a página.';
+    console.error("Erro ao carregar CSRF:", err);
   }
 }
 
-document.getElementById('btnToggleQr').onclick = async () => {
-  const statusEl = document.getElementById('qr-status');
-  statusEl.textContent = clientActive ? 'Parando bot...' : 'Iniciando geração do QR code...';
-
+// ======================
+// Carregar dados do usuário
+// ======================
+async function loadUserInfo() {
   try {
-    // Corrigido endpoint para o prefixo correto
-    const url = clientActive ? '/api/whatsapp/stop-bot' : '/api/whatsapp/generate-qr';
-    const res = await fetch(url);
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (!res.ok) throw new Error('não autenticado');
     const data = await res.json();
-    statusEl.textContent = data.message;
+
+    userId = data.id; // <-- ID correto da sessão
+
+    const headerEl = document.getElementById("user-header");
+    if (headerEl) {
+      headerEl.textContent = `Usuário: ${data.username} (ID: ${data.id})`;
+    }
   } catch (err) {
-    statusEl.textContent = clientActive ? 'Erro ao parar o bot.' : 'Erro ao gerar novo QR code.';
+    console.error("Erro ao carregar informações:", err);
+  }
+}
+
+// ======================
+// Inicialização da página
+// ======================
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadCsrf();
+  await loadUserInfo();   // aqui userId já fica preenchido com o da sessão
+  if (!userId) {
+    console.error('userId não definido, abortando QR page');
+    return;
+  }
+  initializeQrPage();
+});
+
+// ======================
+// Função principal da página
+// ======================
+function initializeQrPage() {
+  let qrInstance = null;
+  let clientActive = false;
+
+  // Detectar ambiente
+  const isLocal = window.location.hostname === "localhost";
+  const baseURL = isLocal
+    ? `http://${window.location.host}`
+    : `https://${window.location.host}`;
+
+  // ======================
+  // Buscar QR periodicamente
+  // ======================
+  async function fetchQr() {
+    try {
+      const res = await fetch(`${baseURL}/api/whatsapp/qr/${userId}`);
+      const data = await res.json();
+
+      const statusEl = document.getElementById("qr-status");
+      const qrDiv = document.getElementById("qrcode");
+
+      clientActive = data.ready || !!data.qr;
+
+      // Atualiza botão
+      const btn = document.getElementById("btnToggleQr");
+      btn.textContent = clientActive
+        ? "Parar bot"
+        : "Iniciar geração do QR code";
+
+      if (data.ready) {
+        statusEl.textContent = "WhatsApp conectado!";
+        qrDiv.innerHTML = "";
+        return;
+      }
+
+      if (!data.qr) {
+        statusEl.textContent = "Aguardando QR code...";
+        qrDiv.innerHTML = "";
+        return;
+      }
+
+      // Gerar QR
+      statusEl.textContent = "Escaneie o QR com o WhatsApp.";
+      qrDiv.innerHTML = "";
+      qrInstance = new QRCode(qrDiv, {
+        text: data.qr,
+        width: 256,
+        height: 256,
+      });
+
+    } catch (err) {
+      document.getElementById("qr-status").textContent =
+        "Erro ao carregar QR.";
+    }
   }
 
-  setTimeout(fetchQr, 1500);
-};
+  // ======================
+  // Botão iniciar/parar
+  // ======================
+  document.getElementById("btnToggleQr").onclick = async () => {
+    const statusEl = document.getElementById("qr-status");
 
-// Busca inicial do QR
-fetchQr();
-// Atualiza a cada 10 segundos para refrescar o QR
-setInterval(fetchQr, 10000);
+    statusEl.textContent = clientActive
+      ? "Parando bot..."
+      : "Iniciando geração do QR code...";
+
+    try {
+      const endpoint = clientActive
+        ? `/api/whatsapp/stop/${userId}`
+        : `/api/whatsapp/start/${userId}`;
+
+      const res = await fetch(`${baseURL}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "CSRF-Token": csrfToken
+        }
+      });
+
+      const data = await res.json();
+      statusEl.textContent = data.message;
+
+    } catch (err) {
+      statusEl.textContent = clientActive
+        ? "Erro ao parar bot."
+        : "Erro ao iniciar bot.";
+    }
+
+    // Esperar backend gerar o QR
+    setTimeout(fetchQr, 1500);
+  };
+
+  // Carregar QR imediato
+  fetchQr();
+
+  // Atualização periódica
+  setInterval(fetchQr, 10000);
+}
