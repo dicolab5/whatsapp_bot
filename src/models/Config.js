@@ -1,4 +1,4 @@
-// src/models/Config.js 
+// src/models/Config.js
 const db = require('../database/db');
 
 module.exports = {
