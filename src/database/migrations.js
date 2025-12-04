@@ -29,20 +29,51 @@ async function runMigrations() {
     }
   }
 
-  // Garantir UNIQUE (user_id, wa_id) em whatsapp_contacts para multi-usuário
+  //remover se der ruim
+  const uniqueExists = await db.raw(`
+  SELECT 1
+  FROM pg_constraint
+  WHERE conname = 'whatsapp_contacts_user_wa_unique';
+`);
+
+  if (uniqueExists.rows.length === 0) {
+  await db.schema.alterTable('whatsapp_contacts', (table) => {
+    table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
+  });
+}
+
+
   try {
-    const hasContacts = await db.schema.hasTable('whatsapp_contacts');
-    if (hasContacts) {
+  const hasContacts = await db.schema.hasTable('whatsapp_contacts');
+
+  if (hasContacts) {
+
+    // Remover UNIQUE antigo (se existir)
+    try {
       await db.schema.alterTable('whatsapp_contacts', (table) => {
-        // remover unique antigo só em wa_id, se ainda existir em algum ambiente
         table.dropUnique(['wa_id'], 'whatsapp_contacts_wa_id_unique');
-        // garantir unique composto (user_id, wa_id)
+      });
+    } catch (e) {
+      // ignorar se já não existir
+    }
+
+    // Verifica se a constraint nova já existe
+    const check = await db.raw(`
+      SELECT 1 FROM pg_constraint WHERE conname = 'whatsapp_contacts_user_wa_unique';
+    `);
+
+    if (check.rows.length === 0) {
+      await db.schema.alterTable('whatsapp_contacts', (table) => {
         table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
       });
+      console.log("✅ UNIQUE (user_id, wa_id) criado em whatsapp_contacts");
+    } else {
+      console.log("ℹ️ UNIQUE (user_id, wa_id) já existe em whatsapp_contacts");
     }
-  } catch (err) {
-    console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
   }
+} catch (err) {
+  console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
+}
 
   // Tabela de transmissões (broadcasts) do WhatsApp
   const hasBroadcasts = await db.schema.hasTable('whatsapp_broadcasts');
@@ -446,5 +477,6 @@ if (require.main === module) {
 }
 
 module.exports = runMigrations;
+
 
 
