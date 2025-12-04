@@ -7,7 +7,7 @@ async function runMigrations() {
   // OPCIONAL: ZERAR O BANCO
   // ============================
   // Descomenta quando quiser limpar tudo.
-  
+  /*
   console.log('⚠️ TRUNCATE/DROP em todas as tabelas relacionadas ao app...');
   await db.raw(`
     DO $$
@@ -24,7 +24,7 @@ async function runMigrations() {
       END LOOP;
     END $$;
   `);
-  
+  */
 
   // ============================
   // TABELA users (BASE)
@@ -423,3 +423,4 @@ if (require.main === module) {
 }
 
 module.exports = runMigrations;
+
