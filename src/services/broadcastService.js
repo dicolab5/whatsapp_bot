@@ -1,9 +1,10 @@
+// preciso confirmar se este arquivo está adaptado ao cahtbot multiusuário
 // src/services/broadcastService.js corrigido 
 const db = require('../database/db');
 const { client } = require('../whatsapp/whatsapp');
 const { MessageMedia } = require('whatsapp-web.js');
-const path = require('node:path');
-const fs = require('node:fs');
+const path = require('path');
+const fs = require('fs');
 
 const MIN_DELAY_MS = 4000;
 const MAX_DELAY_MS = 9000;
@@ -14,11 +15,8 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const crypto = require('crypto'); // Adiciona para usar randomInt
-
 function randomDelay() {
-  // Gera um valor seguro no intervalo [MIN_DELAY_MS, MAX_DELAY_MS)
-  return MIN_DELAY_MS + crypto.randomInt(MAX_DELAY_MS - MIN_DELAY_MS);
+  return MIN_DELAY_MS + Math.floor(Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS));
 }
 
 async function countTodaySends() {
@@ -143,6 +141,4 @@ async function createAndSendBroadcast({
 module.exports = {
   createAndSendBroadcast
 };
-
-
 

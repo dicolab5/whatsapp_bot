@@ -1,4 +1,4 @@
-// src/whatsapp/client.js
+// src/whatsapp/client.js 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const fs = require('node:fs').promises;
 const path = require('node:path');

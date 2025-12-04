@@ -3,7 +3,6 @@ require('dotenv').config();
 const db = require('./db');
 
 async function runMigrations() {
-  // Tabela de contatos do WhatsApp
   const hasContacts = await db.schema.hasTable('whatsapp_contacts');
   if (!hasContacts) {
     await db.schema.createTable('whatsapp_contacts', (table) => {
@@ -29,22 +28,6 @@ async function runMigrations() {
     }
   }
 
-  // Garantir UNIQUE (user_id, wa_id) em whatsapp_contacts para multi-usuário
-  try {
-    const hasContacts = await db.schema.hasTable('whatsapp_contacts');
-    if (hasContacts) {
-      await db.schema.alterTable('whatsapp_contacts', (table) => {
-        // remover unique antigo só em wa_id, se ainda existir em algum ambiente
-        table.dropUnique(['wa_id'], 'whatsapp_contacts_wa_id_unique');
-        // garantir unique composto (user_id, wa_id)
-        table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
-      });
-    }
-  } catch (err) {
-    console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
-  }
-
-  // Tabela de transmissões (broadcasts) do WhatsApp
   const hasBroadcasts = await db.schema.hasTable('whatsapp_broadcasts');
 
   if (hasBroadcasts) {
@@ -64,7 +47,6 @@ async function runMigrations() {
     });
   }
 
-  // Tabela de logs de envios de transmissões
   const hasBroadcastLogs = await db.schema.hasTable('whatsapp_broadcast_logs');
   if (!hasBroadcastLogs) {
     await db.schema.createTable('whatsapp_broadcast_logs', (table) => {
@@ -78,7 +60,6 @@ async function runMigrations() {
     });
   }
 
-  // Tabela de solicitações de manutenção via WhatsApp
   const hasMaintenance = await db.schema.hasTable('maintenance_requests');
 
   if (hasMaintenance) {
@@ -285,7 +266,6 @@ async function runMigrations() {
     });
   }
 
-  // Tabela de usuários do sistema
   const hasUsers = await db.schema.hasTable('users');
   if (!hasUsers) {
     await db.schema.createTable('users', (table) => {
@@ -379,57 +359,113 @@ async function runMigrations() {
   // Adicionar user_id em tabelas que precisam referenciar o usuário dono da conta   |
   //==================================================================================
 
-  const tablesToUpdate = [
-    'whatsapp_contacts',
-    'whatsapp_broadcasts', 
-    'maintenance_requests',
-    'whatsapp_promo',
-    'sales',
-    'assistances',
-    'vendors',
-    'whatsapp_broadcast_logs',
-    'whatsapp_topic_services',
-    'whatsapp_topics',
-    'products'
-  ];
-
-  for (const tableName of tablesToUpdate) {
-    try {
-      const hasUserId = await db.schema.hasColumn(tableName, 'user_id');
-      if (!hasUserId) {
-        await db.schema.alterTable(tableName, (table) => {
-          table.integer('user_id')
-            .unsigned()
-            .notNullable() //notNullable : como conf normal
-            .references('id')
-            .inTable('users')
-            .onDelete('CASCADE')
-            .index();
-        });
-        console.log(`✅ Coluna user_id adicionada na tabela ${tableName}`);
-      } else {
-        console.log(`ℹ️  Tabela ${tableName} já tem user_id`);
-      }
-    } catch (err) {
-      console.warn(`⚠️  Erro ao processar tabela ${tableName}:`, err.message);
-    }
+  // Exemplo para whatsapp_contacts
+  const hasUserIdContacts = await db.schema.hasColumn('whatsapp_contacts', 'user_id');
+  if (!hasUserIdContacts) {
+    await db.schema.alterTable('whatsapp_contacts', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
   }
 
-    // Tabela de estados dos usuários no atendimento via WhatsApp
-    const hasUserStates = await db.schema.hasTable('whatsapp_user_states');
-    if (!hasUserStates) {
-        await db.schema.createTable('whatsapp_user_states', (table) => {
-            table.increments('id').primary();
-            table.integer('user_id').unsigned().notNullable()
-                .references('id').inTable('users').onDelete('CASCADE');
-            table.string('wa_id').notNullable().index();
-            table.integer('step').notNullable().defaultTo(1);
-            table.jsonb('data').nullable();  // { topicId, date, address... }
-            table.timestamp('created_at').defaultTo(db.fn.now());
-            table.timestamp('updated_at').defaultTo(db.fn.now());
-            table.unique(['user_id', 'wa_id']); // 1 estado por wa_id por user
-        });
-    }
+  // Exemplo para whatsapp_broadcasts
+  const hasUserIdBroadcasts = await db.schema.hasColumn('whatsapp_broadcasts', 'user_id');
+  if (!hasUserIdBroadcasts) {
+    await db.schema.alterTable('whatsapp_broadcasts', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para maintenance_requests
+  const hasUserIdMaintenance = await db.schema.hasColumn('maintenance_requests', 'user_id');
+  if (!hasUserIdMaintenance) {
+    await db.schema.alterTable('maintenance_requests', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para whatsapp_promo
+  const hasUserIdPromo = await db.schema.hasColumn('whatsapp_promo', 'user_id');
+  if (!hasUserIdPromo) {
+    await db.schema.alterTable('whatsapp_promo', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para sales
+  const hasUserIdSales = await db.schema.hasColumn('sales', 'user_id');
+  if (!hasUserIdSales) {
+    await db.schema.alterTable('sales', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para assistances
+  const hasUserIdAssistances = await db.schema.hasColumn('assistances', 'user_id');
+  if (!hasUserIdAssistances) {
+    await db.schema.alterTable('assistances', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para vendors
+  const hasUserIdVendors = await db.schema.hasColumn('vendors', 'user_id');
+  if (!hasUserIdVendors) {
+    await db.schema.alterTable('vendors', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para whatsapp_broadcast_logs
+  const hasUserIdBroadcastsLogs = await db.schema.hasColumn('whatsapp_broadcast_logs', 'user_id');
+  if (!hasUserIdBroadcastsLogs) {
+    await db.schema.alterTable('whatsapp_broadcast_logs', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para subscriptions
+  const hasUserIdSubscriptions = await db.schema.hasColumn('subscriptions', 'user_id');
+  if (!hasUserIdSubscriptions) {
+    await db.schema.alterTable('subscriptions', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para whatsapp_topic_services
+  const hasUserIdTopicServices = await db.schema.hasColumn('whatsapp_topic_services', 'user_id');
+  if (!hasUserIdTopicServices) {
+    await db.schema.alterTable('whatsapp_topic_services', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para whatsapp_topics
+  const hasUserIdTopics = await db.schema.hasColumn('whatsapp_topics', 'user_id');
+  if (!hasUserIdTopics) {
+    await db.schema.alterTable('whatsapp_topics', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
+
+  // Exemplo para products
+  const hasUserIdProducts = await db.schema.hasColumn('products', 'user_id');
+  if (!hasUserIdProducts) {
+    await db.schema.alterTable('products', (table) => {
+      table.integer('user_id').unsigned().notNullable()
+        .references('id').inTable('users').onDelete('CASCADE').index();
+    });
+  }
 
   
   console.log('Migrations concluídas');

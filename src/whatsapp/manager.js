@@ -1,0 +1,78 @@
+// src/whatsapp/manager.js - Gerencia múltiplos clients WhatsApp por usuário
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const fs = require('node:fs').promises;
+const path = require('node:path');
+const db = require('../database/db');
+
+const clients = new Map();  // userId → client
+const clientStates = new Map();  // userId → {ready, qr}
+
+class WhatsAppManager {
+  // Pega ou cria client para userId específico
+  static async getClient(userId) {
+    if (!clients.has(userId)) {
+      await this.createClient(userId);
+    }
+    return clients.get(userId);
+  }
+
+  static async createClient(userId) {
+    const sessionPath = path.join('.', 'sessions', `${userId}`);
+    
+    const client = new Client({
+      authStrategy: new LocalAuth({ dataPath: sessionPath }),
+      puppeteer: {
+        headless: true,
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ]
+      },
+      // ✅ CORRIGIDO: Volta para local como seu código original
+      webVersionCache: { type: 'local' }
+    });
+
+    // Eventos do client
+    client.on('qr', (qr) => {
+      console.log(`📱 QR user ${userId}: pronto para escanear`);
+      clientStates.set(userId, { ready: false, qr });
+    });
+
+    client.on('ready', () => {
+      console.log(`✅ WhatsApp user ${userId} conectado!`);
+      clientStates.set(userId, { ready: true, qr: null });
+    });
+
+    client.on('disconnected', (reason) => {
+      console.log(`❌ WhatsApp user ${userId} desconectado: ${reason}`);
+      clientStates.set(userId, { ready: false, qr: null });
+    });
+
+    clients.set(userId, client);
+    await client.initialize();
+    return client;
+  }
+
+  static async destroyClient(userId) {
+    const client = clients.get(userId);
+    if (client) {
+      await client.destroy();
+      clients.delete(userId);
+      clientStates.delete(userId);
+    }
+  }
+
+  static getStatus(userId) {
+    return clientStates.get(userId) || { ready: false, qr: null };
+  }
+
+  static async getUserStates(userId) {
+    return await db('whatsapp_user_states')
+      .where({ user_id: userId, step: db.raw('> 0') })
+      .select('wa_id', 'step');
+  }
+}
+
+module.exports = WhatsAppManager;
