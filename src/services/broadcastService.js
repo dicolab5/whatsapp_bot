@@ -1,4 +1,3 @@
-// preciso confirmar se este arquivo está adaptado ao cahtbot multiusuário
 // src/services/broadcastService.js corrigido 
 const db = require('../database/db');
 const { client } = require('../whatsapp/whatsapp');

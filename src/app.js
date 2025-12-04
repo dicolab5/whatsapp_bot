@@ -25,8 +25,6 @@ const vendorRoutes = require('./routes/vendorRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 const configRoutes = require('./routes/configRoutes');
-const subscriptionRoutes = require('./routes/subscriptionRoutes');
-
 
 const { layout } = require('./utils/layout');
 const { syncContacts } = require('./whatsapp/whatsapp');
@@ -80,7 +78,6 @@ app.get('/', (req, res) => {
   return res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// Rota para cadastro
 app.get('/cadastro', (req, res) => {
   const cspRelaxed = [
     "default-src 'self'",
@@ -97,21 +94,10 @@ app.get('/cadastro', (req, res) => {
   return res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
 });
 
-// // Rota para login
-// app.get('/login', (req, res) =>
-//   res.sendFile(path.join(__dirname, '..', 'public', 'login.html'))
-// );
+app.get('/login', (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'login.html'))
+);
 
-// Rota para login com captura de plano desejado
-app.get('/login', (req, res) => {
-  // Se veio com ?plan=... guarda na sessão
-  if (req.query.plan) {
-    req.session.afterLoginPlan = req.query.plan; // starter|professional|enterprise
-  }
-  res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
-});
-
-// Rota para logout
 app.get('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) return res.status(500).send('Erro ao fazer logout.');
@@ -129,101 +115,36 @@ app.get('/logout', (req, res) => {
 app.get('/contacts', requireAuth, restrictTo('starter', 'professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'contacts.html'))
 );
-
-// Rota para página de transmissões
 app.get('/broadcast', requireAuth, restrictTo('starter', 'professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'broadcast.html'))
 );
-
-// Rota para página de tickets
 app.get('/tickets', requireAuth, restrictTo('starter', 'professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'tickets.html'))
 );
-
-// Rota para página de QR Code
 app.get('/qr', requireAuth, restrictTo('starter', 'professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'qr.html'))
 );
-
-// Rota para página de tópicos
 app.get('/topics', requireAuth, restrictTo('starter', 'professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'topics.html'))
 );
-
-// Rota para página de serviços
 app.get('/promos', requireAuth, restrictTo('starter', 'professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'promos.html'))
 );
-
-// Rota para página de painel
 app.get('/painel', requireAuth, (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'painel.html'))
 );
-
-//  Rota para página de cadastros
 app.get('/cadastros', requireAuth, restrictTo('starter', 'professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'cadastros.html'))
 );
-
-//  Rota para página de dashboard
 app.get('/dashboard', requireAuth, restrictTo('professional', 'enterprise') , (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'))
 );
-
-// Rota para página de configuração
 app.get('/config', requireAuth, (req, res) =>
   res.sendFile(path.join(__dirname, '..', 'public', 'config.html'))
 );
-
-// Rota para página de cadastro
 app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
 });
-
-// Rota para página de assinatura com auth
-app.get(
-  '/subscription',
-  requireAuth,
-  (req, res, next) => {
-    // aqui req.csrfToken ainda não existe, então aplicamos o csurf só nesta rota
-    const csrfProtection = csurf({
-      cookie: {
-        httpOnly: true,
-        sameSite: 'Strict',
-        secure: IN_PROD
-      }
-    });
-
-    csrfProtection(req, res, (err) => {
-      if (err) return next(err);
-
-      // expõe o token em cookie legível pelo JS
-      res.cookie('XSRF-TOKEN', req.csrfToken(), {
-        sameSite: 'Strict',
-        secure: IN_PROD
-      });
-
-      return res.sendFile(path.join(__dirname, '..', 'public', 'subscription.html'));
-    });
-  }
-);
-
-// // Rota para página de assinatura com auth usar em produção
-// app.get(
-//   '/subscription',
-//   requireAuth,
-//   (req, res) =>
-//     res.sendFile(path.join(__dirname, '..', 'public', 'subscription.html'))
-// );
-
-// // Rota para página de assinatura sem auth teste de assinatura 
-// app.get(
-//   '/subscription',
-//   (req, res) =>
-//     res.sendFile(path.join(__dirname, '..', 'public', 'subscription.html'))
-// );
-
-// -------- Rota para obter dados do usuário autenticado --------
 
 app.get('/api/me', (req, res) => {
   if (!req.session?.userId) {
@@ -319,8 +240,6 @@ app.use('/api/vendors',      requireAuth, vendorRoutes);
 app.use('/api/reports',      requireAuth, reportRoutes);
 app.use('/api/users',        userRoutes);
 app.use('/api/config',       requireAuth, configRoutes);
-//app.use('/api/subscriptions', requireAuth, subscriptionRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
 
 module.exports = app;
     
