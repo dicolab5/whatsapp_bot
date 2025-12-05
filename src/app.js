@@ -1,4 +1,4 @@
-// src/app.js 
+// src/app.js   
 require('dotenv').config();
 const express = require('express');
 const path = require('node:path');
@@ -37,6 +37,10 @@ const { requireAuth, restrictTo } = require('./middlewares/auth');
 const { securityMiddleware, csrfMiddleware } = require('./middlewares/security');
 
 const app = express();
+
+// Necessário para funcionar atrás do ngrok, proxy, nginx etc.
+app.set('trust proxy', 1);
+
 const IN_PROD = process.env.NODE_ENV === 'production';
 
 // -------- Básico --------
@@ -170,6 +174,11 @@ app.get('/config', requireAuth, (req, res) =>
 // Rota para página de cadastro
 app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
+});
+
+// Rota para página de cadastro
+app.get('/privacity', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'privacity.html'));
 });
 
 // Rota para página de assinatura com auth
