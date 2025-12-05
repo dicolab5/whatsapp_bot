@@ -1,4 +1,4 @@
-// src/routes/whatsappRoutes.js - Multi-instância (SEM parâmetros opcionais) 
+// src/routes/whatsappRoutes.js - Multi-instância (SEM parâmetros opcionais)
 const express = require('express');
 const WhatsAppManager = require('../whatsapp/manager');
 //const { syncContacts } = require('../whatsapp/whatsapp'); // Manter sync antigo por enquanto
@@ -50,11 +50,22 @@ router.post('/start/:userId', async (req, res) => {
   }
 });
 
+// router.post('/stop/:userId', async (req, res) => {
+//   const userId = parseInt(req.params.userId);
+//   try {
+//     await WhatsAppManager.destroyClient(userId);
+//     res.json({ message: `Client WhatsApp do user ${userId} parado` });
+//   } catch (err) {
+//     res.status(500).json({ error: 'Erro ao parar client: ' + err.message });
+//   }
+// });
+
+// src/routes/whatsappRoutes.js
 router.post('/stop/:userId', async (req, res) => {
   const userId = parseInt(req.params.userId);
   try {
-    await WhatsAppManager.destroyClient(userId);
-    res.json({ message: `Client WhatsApp do user ${userId} parado` });
+    await WhatsAppManager.resetClientSession(userId);
+    res.json({ message: `Client WhatsApp do user ${userId} parado e sessão limpa` });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao parar client: ' + err.message });
   }

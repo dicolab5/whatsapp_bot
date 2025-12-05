@@ -8,6 +8,20 @@ const AuthController = {
   async login(req, res) {
     const { username, password, token } = req.body;
 
+    function getPostLoginRedirect(req, user) {
+      const plan = req.session.afterLoginPlan;
+      delete req.session.afterLoginPlan;
+
+      // se houver um plano escolhido e o usuário não for admin, manda para subscription
+      if (plan && !user.is_admin) {
+        req.session.selectedPlan = plan; // opcional, para usar depois na UI
+        return '/subscription';
+      }
+
+      // fluxo padrão
+      return '/painel';
+}
+
     try {
       // Se tem token, é verificação 2FA
       if (token && req.session.awaiting2FA) {
@@ -39,22 +53,19 @@ const AuthController = {
             req.session.billingCycle = user.billing_cycle;
             req.session.subscriptionExpires = user.subscription_expires;
           }
-          
           req.session.isAdmin = user.is_admin;
           req.session.userId = user.id;
-          return res.redirect('/painel');
+
+          const redirectTo = getPostLoginRedirect(req, user);
+          return res.redirect(redirectTo);
+
+          // req.session.isAdmin = user.is_admin;
+          // req.session.userId = user.id;
+          // return res.redirect('/painel');
         } else {
           return res.redirect('/login?error=invalid_token');
         }
       }
-
-      // // Login normal (senha) simples (sem debug)
-      // const user = await db('users').where('username', username).first();
-      // if (!user || !await bcrypt.compare(password, user.password_hash)) {
-      //   return res.redirect('/login?error=invalid');
-      // }
-
-      // req.session.userId = user.id;
 
       // Login normal (senha) com debug completo
       const user = await db('users').where('username', username).first();
@@ -74,12 +85,6 @@ const AuthController = {
       }
 
       req.session.userId = user.id;
-
-      // // 2FA obrigatório, se estiver ativado (simples)
-      // if (user.two_factor_enabled && user.two_factor_secret) {
-      //   req.session.awaiting2FA = user.id;
-      //   return res.redirect('/login?2fa=required');
-      // }
 
       // 2FA obrigatório, se estiver ativado - com debug
       console.log('  → Verificando 2FA obrigatório...');
@@ -101,8 +106,12 @@ const AuthController = {
         req.session.subscriptionExpires = user.subscription_expires;
       }
 
+      // req.session.isAdmin = user.is_admin;
+      // return res.redirect('/painel');
       req.session.isAdmin = user.is_admin;
-      return res.redirect('/painel');
+
+      const redirectTo = getPostLoginRedirect(req, user);
+      return res.redirect(redirectTo);
 
     } catch (err) {
       console.error('Login error:', err);

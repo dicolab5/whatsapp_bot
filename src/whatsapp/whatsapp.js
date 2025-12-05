@@ -1,4 +1,4 @@
-// src/whatsapp/whatsapp.js
+// src/whatsapp/whatsapp.js 
 const WhatsAppManager = require("./manager");
 const { normalizeText, isGreeting, isOptOut, normalizeWaId } = require("./utils");
 const { handleOptIn, handleOptOut, handleDailyPromotions, handleHumanSupport } = require("./optHandlers");

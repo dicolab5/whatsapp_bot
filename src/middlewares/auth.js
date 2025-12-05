@@ -1,4 +1,4 @@
-// src/middleware/auth.js
+// src/middleware/auth.js 
 const db = require('../database/db');  // ← ADICIONE esta linha
 
 async function requireAuth(req, res, next) {
@@ -62,47 +62,3 @@ module.exports = {
   restrictTo
 };
 
-
-// // src/middleware/auth.js
-
-// function requireAuth(req, res, next) {
-//   if (!req.session.userId) return res.redirect('/login');
-
-//   if (req.session.isAdmin) return next();
-
-//   if (req.session.subscriptionExpires &&
-//       new Date(req.session.subscriptionExpires) < new Date()) {
-//     return res.redirect('/login?error=trial_expired');
-//   }
-
-//   next();
-// }
-
-// function restrictTo(...allowedTypes) {
-//   return (req, res, next) => {
-//     if (req.session.isAdmin) return next();
-
-//     const accountType = req.session.accountType || 'free';
-
-//     const effectiveType = (accountType === 'free' && req.session.subscriptionExpires)
-//       ? 'professional'
-//       : accountType;
-
-//     if (!allowedTypes.includes(effectiveType)) {
-//       return res.status(403).send(`
-//         <div class="alert alert-danger">
-//           <h4>Acesso negado</h4>
-//           <p>Upgrade necessário para esta funcionalidade.</p>
-//           <a href="/planos" class="btn btn-primary">Ver planos</a>
-//         </div>
-//       `);
-//     }
-
-//     next();
-//   };
-// }
-
-// module.exports = {
-//   requireAuth,
-//   restrictTo
-// };

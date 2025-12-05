@@ -98,90 +98,7 @@ function securityMiddleware(app, { IN_PROD }) {
   });
 }
 
-
-// function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
-//   // CSP global
-//   // app.use(helmet.contentSecurityPolicy({
-//   //   useDefaults: true,
-//   //   directives: {
-//   //     defaultSrc: ["'self'"],
-//   //     scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//   //     scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net", "/js"],
-//   //     styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//   //     styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
-//   //     imgSrc: ["'self'", "data:"],
-//   //     connectSrc: ["'self'", "https://cdn.jsdelivr.net", "/js"],
-//   //     formAction: ["'self'"],
-//   //     frameAncestors: ["'none'"],
-//   //     objectSrc: ["'none'"],
-//   //     fontSrc: ["'self'", "https://cdn.jsdelivr.net"]
-//   //   }
-//   // }));
-
-//   app.use(helmet.contentSecurityPolicy({
-//     useDefaults: true,
-//     directives: {
-//       defaultSrc: ["'self'"],
-//       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//       scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net"],  // removido "/js"
-//       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//       styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
-//       imgSrc: ["'self'", "data:"],
-//       connectSrc: ["'self'", "https://cdn.jsdelivr.net"],       // removido "/js"
-//       formAction: ["'self'"],
-//       frameAncestors: ["'none'"],
-//       objectSrc: ["'none'"],
-//       fontSrc: ["'self'", "https://cdn.jsdelivr.net"]
-//     }
-//   }));
-
-//   const csrfProtection = csurf({
-//     cookie: {
-//       httpOnly: true,
-//       sameSite: 'Strict',
-//       secure: IN_PROD
-//     }
-//   });
-
-//   // ✅ ROTA QUE FALTAVA — AGORA FUNCIONA
-//   app.get("/csrf-token", (req, res) => {
-//     try {
-//       res.json({ csrfToken: req.csrfToken() });
-//     } catch (e) {
-//       res.status(500).json({ error: "Unable to generate CSRF token" });
-//     }
-//   });
-
-//   // Gera token para GET
-//   app.use((req, res, next) => {
-//     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-//       try {
-//         csrfProtection(req, res, () => {
-//           res.cookie("XSRF-TOKEN", req.csrfToken(), {
-//             sameSite: 'Strict',
-//             secure: IN_PROD
-//           });
-//           next();
-//         });
-//       } catch (e) {
-//         next();
-//       }
-//       return;
-//     }
-
-//     if (
-//       (req.method === 'POST' && req.path === '/api/auth/login') ||
-//       (req.method === 'POST' && req.path === '/api/users/register')
-//     ) {
-//       return next();
-//     }
-
-//     return csrfProtection(req, res, next);
-//   });
-// }
-
 function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
-  // CSP — igual ao seu, porém sem bloquear /api
   app.use(helmet.contentSecurityPolicy({
     useDefaults: true,
     directives: {
@@ -191,7 +108,7 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
       styleSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'"],            // <---- corrigido
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"],
       objectSrc: ["'none'"],
@@ -199,43 +116,66 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
     }
   }));
 
-  // Configuração CSRF
   const csrfProtection = csurf({
     cookie: {
       httpOnly: true,
-      sameSite: "Strict",
+      sameSite: 'Strict',
       secure: IN_PROD
     }
   });
 
-  // 🔥 Nova rota que entrega O ÚNICO token válido
-  app.get("/csrf-token", csrfProtection, (req, res) => {
-    res.cookie("XSRF-TOKEN", req.csrfToken(), {
-      sameSite: "Strict",
-      secure: IN_PROD
-    });
-    res.json({ csrfToken: req.csrfToken() });
+  // rota de token usando a MESMA instância
+  app.get('/api/csrf-token', csrfProtection, (req, res) => {
+    const token = req.csrfToken();
+    console.log('🔑 CSRF TOKEN GERADO:', token);
+    console.log('🔑 COOKIES NA GERAÇÃO:', req.cookies);
+    res.json({ csrfToken: token });
   });
 
-  // 🔥 Middleware que aplica CSRF APENAS em métodos perigosos
+  // bypass csrf
   app.use((req, res, next) => {
-
-    // Métodos que NÃO precisam de CSRF
-    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-      return next();
-    }
-
-    // Rotas que devem ser livres de CSRF (login, register)
+    // rotas sem CSRF
     if (
-      req.path === "/api/auth/login" ||
-      req.path === "/api/users/register"
+      req.path === '/api/auth/login' ||
+      req.path === '/api/users/register' ||
+      req.path === '/api/subscriptions/webhook/pagseguro' ||
+      req.path === '/api/broadcast/send' // ← exceção para o form multipart
     ) {
       return next();
     }
 
-    // Tudo que altera dados → protege
+    console.log('🔍 CSRF DEBUG:');
+    console.log('  → method:', req.method);
+    console.log('  → path:', req.path);
+    console.log('  → body:', req.body);
+    console.log('  → body._csrf:', req.body?._csrf);
+    console.log('  → cookies:', req.cookies);
+    console.log('---------------------------------');
+
     return csrfProtection(req, res, next);
   });
+
+  // app.use((req, res, next) => {
+  //   // rotas sem CSRF (se quiser deixar login protegido, remova daqui)
+  //   if (
+  //     req.path === "/api/auth/login" ||
+  //     req.path === "/api/users/register" ||
+  //     req.path === "/api/subscriptions/webhook/pagseguro"
+  //   ) {
+  //     return next();
+  //   }
+
+  //   console.log('🔍 CSRF DEBUG:');
+  //   console.log('  → method:', req.method);
+  //   console.log('  → path:', req.path);
+  //   console.log('  → body:', req.body);
+  //   console.log('  → body._csrf:', req.body?._csrf);
+  //   console.log('  → cookies:', req.cookies);
+  //   console.log('---------------------------------');
+
+  //   return csrfProtection(req, res, next);
+  // });
+  
 }
 
 module.exports = {

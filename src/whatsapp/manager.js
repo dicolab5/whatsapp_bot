@@ -1,4 +1,4 @@
-// src/whatsapp/manager.js - Gerencia múltiplos clients WhatsApp por usuário
+// src/whatsapp/manager.js - Gerencia múltiplos clients WhatsApp por usuário 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const fs = require('node:fs').promises;
 const path = require('node:path');
@@ -53,6 +53,32 @@ class WhatsAppManager {
     clients.set(userId, client);
     await client.initialize();
     return client;
+  }
+
+  static async resetClientSession(userId) {
+    const client = clients.get(userId);
+
+    if (client) {
+      try {
+        await client.destroy();
+      } catch (e) {
+        console.warn(`Erro ao destruir client user ${userId}:`, e.message);
+      }
+      clients.delete(userId);
+      clientStates.delete(userId);
+    }
+
+    const sessionPath = path.join('.', 'sessions', `${userId}`);
+
+    // pequeno delay para o Chromium liberar arquivos
+    await new Promise(r => setTimeout(r, 1000));
+
+    try {
+      await fs.rm(sessionPath, { recursive: true, force: true });
+      console.log(`🗑️ Sessão apagada para user ${userId}: ${sessionPath}`);
+    } catch (err) {
+      console.warn(`⚠️ Erro ao apagar sessão de user ${userId}:`, err.message);
+    }
   }
 
   static async destroyClient(userId) {
