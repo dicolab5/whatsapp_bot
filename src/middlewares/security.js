@@ -144,13 +144,13 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
       return next();
     }
 
-    console.log('🔍 CSRF DEBUG:');
-    console.log('  → method:', req.method);
-    console.log('  → path:', req.path);
-    console.log('  → body:', req.body);
-    console.log('  → body._csrf:', req.body?._csrf);
-    console.log('  → cookies:', req.cookies);
-    console.log('---------------------------------');
+    // console.log('🔍 CSRF DEBUG:');
+    // console.log('  → method:', req.method);
+    // console.log('  → path:', req.path);
+    // console.log('  → body:', req.body);
+    // console.log('  → body._csrf:', req.body?._csrf);
+    // console.log('  → cookies:', req.cookies);
+    // console.log('---------------------------------');
 
     return csrfProtection(req, res, next);
   });
@@ -182,3 +182,4 @@ module.exports = {
   securityMiddleware,
   csrfMiddleware
 };
+
