@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html lang="pt-br">
 
 <head>
@@ -45,6 +45,7 @@
 
             <!-- <form id="broadcastForm" method="POST" action="/broadcast"> -->
             <form id="broadcastForm" method="POST" action="/api/broadcast/send" enctype="multipart/form-data">
+              <input type="hidden" name="_csrf" id="csrfTokenBroadcast" />
               <input type="hidden" name="contactIds" id="idsInput" />
               <!-- Input oculto para guardar o id da campanha selecionada -->
               <input type="hidden" name="broadcastId" id="broadcastIdInput" />
@@ -84,8 +85,9 @@
       </div>
     </div>
   </main>
-  <script src="/js/broadcast-page.js"></script>
   <canvas id="matrix"></canvas>
+  <script src="/js/http.js"></script>
+  <script src="/js/broadcast-page.js"></script>  
   <script src="/js/matrix.js"></script>
 </body>
 

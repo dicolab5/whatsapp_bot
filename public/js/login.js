@@ -1,3 +1,4 @@
+// public/js/login.js
 console.log('🚀 LOGIN SCRIPT CARREGADO');
 
   // Aguarda DOM + delay para garantir

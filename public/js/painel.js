@@ -15,11 +15,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     //   navBrand.textContent = `Painel Chatbot TI - ${me.username}`;
     // }
 
-    // Ajustar links para incluir userId na URL, se quiser
-    const qrLink = document.querySelector('a[href="/qr"]');
-    if (qrLink && me.id) {
-      qrLink.href = `/api/whatsapp/qr/${me.id}`;
-    }
+    //ATENÇÃO!!!!! Descomentar se parar de funcionar alguma coisa referente ao qrcode
+    // // Ajustar links para incluir userId na URL, se quiser
+    // const qrLink = document.querySelector('a[href="/qr"]');
+    // if (qrLink && me.id) {
+    //   qrLink.href = `/api/whatsapp/qr/${me.id}`;
+    // }
 
     const syncLink = document.querySelector('a[href="/sync-contacts"]');
     if (syncLink && me.id) {

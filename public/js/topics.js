@@ -1,4 +1,33 @@
 // public/js/topics.js
+
+// Helper global para CSRF
+async function getCsrfToken() {
+  if (window.__csrfToken) return window.__csrfToken;
+
+  const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+  const data = await res.json();
+  window.__csrfToken = data.csrfToken;
+  console.log('🔑 TOKEN CSRF (topics.js):', window.__csrfToken);
+  return window.__csrfToken;
+}
+
+async function csrfFetch(url, options = {}) {
+  const token = await getCsrfToken();
+
+  const headers = new Headers(options.headers || {});
+  // Só define Content-Type se não tiver ainda (para não quebrar FormData, etc)
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  headers.set('CSRF-Token', token); // lido pelo csurf em req.headers['csrf-token']
+
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: 'same-origin'
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const topicsList = document.getElementById('topicsList');
   const servicesSection = document.getElementById('servicesSection');
@@ -22,16 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const serviceTypeInput = document.getElementById('serviceType');
   const serviceActiveInput = document.getElementById('serviceActive');
 
-  // Carrega tópicos do backend
+  // Carrega tópicos do backend (GET não precisa de CSRF)
   async function loadTopics() {
     topicsList.innerHTML = '';
     servicesSection.style.display = 'none';
     currentTopicId = null;
 
-    const res = await fetch('/api/topics');
+    const res = await fetch('/api/topics', { credentials: 'same-origin' });
     const topics = await res.json();
 
-    if (topics.length === 0) {
+    if (!Array.isArray(topics) || topics.length === 0) {
       topicsList.innerHTML = '<li class="list-group-item">Nenhum tópico cadastrado.</li>';
       return;
     }
@@ -54,13 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadServices(currentTopicId);
   }
 
-  // Carrega serviços de um tópico
+  // Carrega serviços de um tópico (GET)
   async function loadServices(topicId) {
     servicesList.innerHTML = '';
-    const res = await fetch(`/api/services/${topicId}`);
+    const res = await fetch(`/api/services/${topicId}`, { credentials: 'same-origin' });
     const services = await res.json();
 
-    if (services.length === 0) {
+    if (!Array.isArray(services) || services.length === 0) {
       servicesList.innerHTML = '<li class="list-group-item">Nenhum serviço cadastrado para este tópico.</li>';
       return;
     }
@@ -100,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalTopic.show();
   };
 
-  // Salvar tópico no backend
+  // Salvar tópico no backend (POST/PUT com CSRF)
   formTopic.onsubmit = async (e) => {
     e.preventDefault();
     const id = topicIdInput.value;
@@ -109,22 +138,25 @@ document.addEventListener('DOMContentLoaded', () => {
       active: topicActiveInput.checked
     };
 
-    if (id) {
-      await fetch(`/api/topics/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-    } else {
-      await fetch('/api/topics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-    }
+    try {
+      if (id) {
+        await csrfFetch(`/api/topics/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data)
+        });
+      } else {
+        await csrfFetch('/api/topics', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+      }
 
-    modalTopic.hide();
-    loadTopics();
+      modalTopic.hide();
+      loadTopics();
+    } catch (err) {
+      console.error('Erro ao salvar tópico:', err);
+      alert('Erro ao salvar tópico.');
+    }
   };
 
   // Abrir modal para adicionar serviço novo
@@ -147,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     modalService.show();
   }
 
-  // Salvar serviço no backend
+  // Salvar serviço no backend (POST/PUT com CSRF)
   formService.onsubmit = async (e) => {
     e.preventDefault();
     const id = serviceIdInput.value;
@@ -157,28 +189,36 @@ document.addEventListener('DOMContentLoaded', () => {
       active: serviceActiveInput.checked
     };
 
-    if (id) {
-      await fetch(`/api/services/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-    } else {
-      await fetch('/api/services', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+    try {
+      if (id) {
+        await csrfFetch(`/api/services/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data)
+        });
+      } else {
+        await csrfFetch('/api/services', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+      }
+      modalService.hide();
+      loadServices(currentTopicId);
+    } catch (err) {
+      console.error('Erro ao salvar serviço:', err);
+      alert('Erro ao salvar serviço.');
     }
-    modalService.hide();
-    loadServices(currentTopicId);
   };
 
-  // Deletar serviço
+  // Deletar serviço (DELETE com CSRF)
   async function deleteService(serviceId) {
     if (!confirm('Confirma exclusão?')) return;
-    await fetch(`/api/services/${serviceId}`, { method: 'DELETE' });
-    loadServices(currentTopicId);
+    try {
+      await csrfFetch(`/api/services/${serviceId}`, { method: 'DELETE' });
+      loadServices(currentTopicId);
+    } catch (err) {
+      console.error('Erro ao excluir serviço:', err);
+      alert('Erro ao excluir serviço.');
+    }
   }
 
   // Inicializa carregando tópicos
