@@ -2,7 +2,30 @@
 require('dotenv').config();
 const db = require('./db');
 
+
+
 async function runMigrations() {
+
+//   // limpar banco de dados em desenvolvimento - comentar se não quiser perder dados
+//   if (process.env.NODE_ENV === 'development') {
+//   await db.schema.dropTableIfExists('assistance_items');
+//   await db.schema.dropTableIfExists('assistances');
+//   await db.schema.dropTableIfExists('sale_items');
+//   await db.schema.dropTableIfExists('sales');
+//   await db.schema.dropTableIfExists('vendors');
+//   await db.schema.dropTableIfExists('products');
+//   await db.schema.dropTableIfExists('subscriptions');
+//   await db.schema.dropTableIfExists('whatsapp_user_states');
+//   await db.schema.dropTableIfExists('maintenance_requests');
+//   await db.schema.dropTableIfExists('whatsapp_topic_services');
+//   await db.schema.dropTableIfExists('whatsapp_topics');
+//   await db.schema.dropTableIfExists('whatsapp_broadcast_logs');
+//   await db.schema.dropTableIfExists('whatsapp_broadcasts');
+//   await db.schema.dropTableIfExists('whatsapp_promo');
+//   await db.schema.dropTableIfExists('whatsapp_contacts');
+//   //await db.schema.dropTableIfExists('users');
+// }
+
   // Tabela de contatos do WhatsApp
   const hasContacts = await db.schema.hasTable('whatsapp_contacts');
   if (!hasContacts) {
@@ -29,51 +52,45 @@ async function runMigrations() {
     }
   }
 
-  //remover se der ruim
-  const uniqueExists = await db.raw(`
-  SELECT 1
-  FROM pg_constraint
-  WHERE conname = 'whatsapp_contacts_user_wa_unique';
-`);
-
-  if (uniqueExists.rows.length === 0) {
-  await db.schema.alterTable('whatsapp_contacts', (table) => {
-    table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
-  });
-}
-
+  // // Garantir UNIQUE (user_id, wa_id) em whatsapp_contacts para multi-usuário
+  // try {
+  //   const hasContacts = await db.schema.hasTable('whatsapp_contacts');
+  //   if (hasContacts) {
+  //     await db.schema.alterTable('whatsapp_contacts', (table) => {
+  //       // remover unique antigo só em wa_id, se ainda existir em algum ambiente
+  //       //table.dropUnique(['wa_id'], 'whatsapp_contacts_wa_id_unique');
+  //       // garantir unique composto (user_id, wa_id)
+  //       table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
+  //     });
+  //   }
+  // } catch (err) {
+  //   console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
+  // }
 
   try {
   const hasContacts = await db.schema.hasTable('whatsapp_contacts');
-
   if (hasContacts) {
-
-    // Remover UNIQUE antigo (se existir)
-    try {
-      await db.schema.alterTable('whatsapp_contacts', (table) => {
-        table.dropUnique(['wa_id'], 'whatsapp_contacts_wa_id_unique');
-      });
-    } catch (e) {
-      // ignorar se já não existir
-    }
-
-    // Verifica se a constraint nova já existe
-    const check = await db.raw(`
-      SELECT 1 FROM pg_constraint WHERE conname = 'whatsapp_contacts_user_wa_unique';
+    const exists = await db.raw(`
+      SELECT 1
+      FROM pg_constraint c
+      JOIN pg_class t ON c.conrelid = t.oid
+      WHERE t.relname = 'whatsapp_contacts'
+        AND c.conname = 'whatsapp_contacts_user_wa_unique'
+      LIMIT 1;
     `);
 
-    if (check.rows.length === 0) {
+    const alreadyExists = exists.rows?.length > 0;
+
+    if (!alreadyExists) {
       await db.schema.alterTable('whatsapp_contacts', (table) => {
         table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
       });
-      console.log("✅ UNIQUE (user_id, wa_id) criado em whatsapp_contacts");
-    } else {
-      console.log("ℹ️ UNIQUE (user_id, wa_id) já existe em whatsapp_contacts");
     }
   }
 } catch (err) {
   console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
 }
+
 
   // Tabela de transmissões (broadcasts) do WhatsApp
   const hasBroadcasts = await db.schema.hasTable('whatsapp_broadcasts');
@@ -361,6 +378,7 @@ async function runMigrations() {
     const hasSubscriptionExpires = await db.schema.hasColumn('users', 'subscription_expires');
     const hasCpf = await db.schema.hasColumn('users', 'cpf');
     const hasPhone = await db.schema.hasColumn('users', 'phone');
+    const hasfullName = await db.schema.hasColumn('users', 'full_name');
 
     // adicionar colunas de conta e cobrança se não existirem
     if (!hasAccountType || !hasBillingCycle || !hasSubscriptionExpires) {
@@ -376,6 +394,12 @@ async function runMigrations() {
         if (!hasSubscriptionExpires) {
           table.date('subscription_expires').nullable();
         }
+      });      
+    }
+
+    if (!hasfullName) {
+      await db.schema.alterTable('users', (table) => { 
+        table.string('full_name').nullable();
       });
     }
 
@@ -389,22 +413,99 @@ async function runMigrations() {
   }
 
   // Histórico de assinaturas (CORRIGIDO)
+  // const hasSubscriptions = await db.schema.hasTable('subscriptions');
+  // if (!hasSubscriptions) {
+  //   await db.schema.createTable('subscriptions', (table) => {
+  //     table.increments('id').primary();
+  //     table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
+  //     table.enu('plan', ['free', 'starter', 'professional', 'enterprise']).notNullable();
+  //     table.enu('billing_cycle', ['monthly', 'annual']).notNullable();
+  //     table.decimal('amount', 10, 2).notNullable();     // R$ 29,90 etc.
+  //     table.date('start_date').notNullable();
+  //     table.date('expires_date').notNullable();
+  //     table.string('status').defaultTo('active');        // active, expired, canceled
+  //     table.string('payment_method').nullable();         // pix, cartao, boleto
+  //     table.string('payment_id').nullable();             // ID da transação
+  //     table.timestamp('created_at').defaultTo(db.fn.now());
+  //   });
+  // }
+
+  // MIGRATION: garantir que a tabela subscriptions tenha todos os campos necessários
   const hasSubscriptions = await db.schema.hasTable('subscriptions');
+
   if (!hasSubscriptions) {
+    // Se a tabela NÃO existir, cria completa
     await db.schema.createTable('subscriptions', (table) => {
       table.increments('id').primary();
       table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE');
       table.enu('plan', ['free', 'starter', 'professional', 'enterprise']).notNullable();
       table.enu('billing_cycle', ['monthly', 'annual']).notNullable();
-      table.decimal('amount', 10, 2).notNullable();     // R$ 29,90 etc.
+      table.decimal('amount', 10, 2).notNullable();
       table.date('start_date').notNullable();
       table.date('expires_date').notNullable();
-      table.string('status').defaultTo('active');        // active, expired, canceled
-      table.string('payment_method').nullable();         // pix, cartao, boleto
-      table.string('payment_id').nullable();             // ID da transação
+      table.string('status').defaultTo('active');
+      table.string('payment_method').nullable();
+      table.string('payment_id').nullable();
+      table.string('txid').nullable();      // NOVO
+      table.text('payload').nullable();     // NOVO
+      table.timestamp('expires_at').nullable();      // ← novo
       table.timestamp('created_at').defaultTo(db.fn.now());
     });
+
+  } else {
+    // Se já existir, adiciona apenas o que faltar
+    const columns = await db('subscriptions').columnInfo();
+
+    await db.schema.alterTable('subscriptions', (table) => {
+      if (!columns.plan) table.enu('plan', ['free', 'starter', 'professional', 'enterprise']).notNullable();
+      if (!columns.billing_cycle) table.enu('billing_cycle', ['monthly', 'annual']).notNullable();
+      if (!columns.amount) table.decimal('amount', 10, 2).notNullable();
+      if (!columns.start_date) table.date('start_date').nullable();
+      if (!columns.expires_date) table.date('expires_date').nullable();
+      if (!columns.status) table.string('status').defaultTo('active');
+      if (!columns.payment_method) table.string('payment_method').nullable();
+      if (!columns.payment_id) table.string('payment_id').nullable();
+
+      // CAMPOS NOVOS PARA PIX
+      if (!columns.txid) table.string('txid').nullable();
+      if (!columns.payload) table.text('payload').nullable();
+      if (!columns.expires_at) table.timestamp('expires_at').nullable(); // ← novo
+      if (!columns.created_at) table.timestamp('created_at').defaultTo(db.fn.now());
+    });
   }
+
+  // MIGRATION: criar tabela comprovantes
+const hasReceipts = await db.schema.hasTable('comprovantes');
+
+if (!hasReceipts) {
+  await db.schema.createTable('comprovantes', (table) => {
+    table.increments('id').primary();
+    table.integer('subscription_id').unsigned()
+      .notNullable()
+      .references('id').inTable('subscriptions')
+      .onDelete('CASCADE');
+
+    table.string('url_file').notNullable();
+    table.enu('status', ['pending', 'approved', 'rejected']).defaultTo('pending');
+    table.timestamp('created_at').defaultTo(db.fn.now());
+  });
+} else {
+  const columns = await db('comprovantes').columnInfo();
+
+  await db.schema.alterTable('comprovantes', (table) => {
+    if (!columns.subscription_id) {
+      table.integer('subscription_id').unsigned()
+        .notNullable()
+        .references('id').inTable('subscriptions')
+        .onDelete('CASCADE');
+    }
+    if (!columns.url_file) table.string('url_file').nullable(); // depois você pode endurecer p/ notNullable
+    if (!columns.status) table.enu('status', ['pending', 'approved', 'rejected']).defaultTo('pending');
+    if (!columns.created_at) table.timestamp('created_at').defaultTo(db.fn.now());
+  });
+}
+
+
 
   //==================================================================================
   // Adicionar user_id em tabelas que precisam referenciar o usuário dono da conta   |
@@ -477,6 +578,5 @@ if (require.main === module) {
 }
 
 module.exports = runMigrations;
-
 
 
