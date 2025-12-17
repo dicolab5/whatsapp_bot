@@ -1,11 +1,12 @@
-// src/routes/subscriptionRoutes.js
-const express = require('express');
-const { createCheckout, pagSeguroWebhook } = require('../controllers/SubscriptionController');
-const { requireAuth } = require('../middlewares/auth');
+// src/routes/subscriptionRoutes.js  
+const router = require('express').Router();
+const SubscriptionController = require('../controllers/SubscriptionController');
 
-const router = express.Router();
+// Criar checkout (PIX manual)
+router.post('/checkout', SubscriptionController.createCheckout);
 
-router.post('/checkout', requireAuth, createCheckout); // aqui sim
-router.post('/webhook/pagseguro', express.json(), pagSeguroWebhook); // sem auth
+// Verificar status por TXID
+router.get('/status', SubscriptionController.getStatusByTxid);
 
 module.exports = router;
+

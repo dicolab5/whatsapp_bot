@@ -1,12 +1,13 @@
+// corrigido 08/12/2025
 // src/app.js   
 require('dotenv').config();
 const express = require('express');
 const path = require('node:path');
 const bodyParser = require('body-parser');
-const session = require('express-session');
+//const session = require('express-session');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const slowDown = require('express-slow-down');
+//const rateLimit = require('express-rate-limit');
+//const slowDown = require('express-slow-down');
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 
@@ -26,6 +27,10 @@ const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
 const configRoutes = require('./routes/configRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const reportSummaryRoutes = require('./routes/reportSummaryRoutes');
+const checkoutRoutes = require("./routes/checkoutRoutes");
+const comprovanteRoutes = require("./routes/comprovanteRoutes");
+
 
 
 const { layout } = require('./utils/layout');
@@ -38,32 +43,68 @@ const { securityMiddleware, csrfMiddleware } = require('./middlewares/security')
 
 const app = express();
 
-// Necessário para funcionar atrás do ngrok, proxy, nginx etc.
-app.set('trust proxy', 1);
-
 const IN_PROD = process.env.NODE_ENV === 'production';
 
 // -------- Básico --------
 app.disable('x-powered-by');
-if (IN_PROD) app.set('trust proxy', 1);
 
-// Static
-app.use(express.static(path.join(__dirname, '..', 'public'), {
-  maxAge: '1d',
-  index: false
+// trust proxy ANTES de tudo que depende disso
+app.set('trust proxy', 1);
+
+// parsing padrão
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
+//app.use(express.json());
+// IMPORTANTÍSSIMO: guardar raw body para HMAC [web:107][web:112]
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf; // Buffer
+  }
 }));
 
-// Parsing
-app.use(express.json({ limit: '50kb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50kb' }));
-app.use(bodyParser.json({ limit: '50kb' }));
-app.use(cookieParser());
+// DEBUG apenas do webhook PIX (antes do router)
+app.use((req, res, next) => {
+  if (req.path === '/api/pix/webhook') {
+    console.log('---- PIX WEBHOOK HIT ----');
+    console.log('Method:', req.method);
+    console.log('URL:', req.originalUrl);
+    console.log('IP:', req.ip);
+    console.log('Headers:', {
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type'],
+      'x-timestamp': req.headers['x-timestamp'],
+      'x-signature': req.headers['x-signature']
+    });
+    // req.body já parseado; req.rawBody é Buffer (seu express.json verify setou)
+    console.log('Body:', req.body);
+    console.log('RawBody:', req.rawBody ? req.rawBody.toString('utf8') : null);
+    console.log('-------------------------');
+  }
+  next();
+});
+
+// Webhook PIX ANTES de CSRF
+app.use('/api/pix', require('./routes/pixWebhookRoutes'));
+
+// webhook ANTES de CSRF
+// app.post(
+//   '/api/subscriptions/webhook-pagbank',
+//   express.text({ type: '*/*' }),
+//   require('./controllers/SubscriptionController').pagBankWebhook
+// );
 
 // Segurança genérica (rate limit, slowdown, sanitização, IDS, HTTPS, etc)
 securityMiddleware(app, { IN_PROD });
 
 // CSP + CSRF
 csrfMiddleware(app, { IN_PROD, csurf, helmet });
+
+
+// Static
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  maxAge: '1d',
+  index: false
+}));
 
 // -------- Páginas públicas (HTML) --------
 app.get('/', (req, res) => {
@@ -176,10 +217,25 @@ app.get('/cadastro', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'cadastro.html'));
 });
 
-// Rota para página de cadastro
+// Rota para página de termos de privacidade
 app.get('/privacity', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'privacity.html'));
 });
+
+// Rota para página incial
+app.get('/index', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
+// Rota para página incial
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'terms.html'));
+});
+
+// página de obrigado após pagamento
+app.get('/thankyou', (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'thankyou.html'))
+);
 
 // Rota para página de assinatura com auth
 app.get(
@@ -188,6 +244,19 @@ app.get(
   (req, res) =>
     res.sendFile(path.join(__dirname, '..', 'public', 'subscription.html'))
 );
+
+// página de obrigado após pagamento
+app.get('/checkout', (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'public', 'checkout.html'))
+);
+
+// Rota para página de assinatura com auth
+// app.get(
+//   '/upgrade',
+//   requireAuth,
+//   (req, res) =>
+//     res.sendFile(path.join(__dirname, '..', 'public', 'upgrade.html'))
+// );
 
 // -------- Rota para obter dados do usuário autenticado --------
 
@@ -283,10 +352,33 @@ app.use('/api/assistances',  requireAuth, assistancesRoutes);
 app.use('/api/products',     requireAuth, productRoutes);
 app.use('/api/vendors',      requireAuth, vendorRoutes);
 app.use('/api/reports',      requireAuth, reportRoutes);
+app.use('/api/summary', reportSummaryRoutes);
 app.use('/api/users',        userRoutes);
 app.use('/api/config',       requireAuth, configRoutes);
 //app.use('/api/subscriptions', requireAuth, subscriptionRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use("/api/confirm", checkoutRoutes);
+app.use("/api/comprovante", comprovanteRoutes);
+
+// ---- JOB INTERNO PARA EXPIRAR SUBSCRIPTIONS PENDING ----
+async function expireOldSubscriptions() {
+  try {
+    const updated = await db('subscriptions')
+      .where('status', 'pending')
+      .whereNotNull('expires_at')
+      .where('expires_at', '<', db.raw("now() - interval '10 minutes'"))
+      .update({ status: 'expired' });
+
+    if (updated > 0) {
+      console.log('[CRON-APP] subscriptions expiradas:', updated);
+    }
+  } catch (err) {
+    console.error('[CRON-APP] erro ao expirar subscriptions:', err);
+  }
+}
+
+// roda a cada 5 minutos
+setInterval(expireOldSubscriptions, 5 * 60 * 1000);
 
 module.exports = app;
     

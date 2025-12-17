@@ -1,4 +1,4 @@
-// src/routes/configRoutes.js
+// src/routes/configRoutes.js 
 const express = require('express');
 const router = express.Router();
 const ConfigController = require('../controllers/ConfigController');
@@ -9,5 +9,6 @@ router.put('/phone', ConfigController.updatePhone);
 router.put('/cpf', ConfigController.updateCPF);
 router.put('/password', ConfigController.updatePassword);
 router.get('/subscription', ConfigController.subscription);
+router.put('/full-name', ConfigController.updateFullName);
 
 module.exports = router;

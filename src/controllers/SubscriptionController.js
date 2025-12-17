@@ -1,156 +1,109 @@
-//em desenvolvimento, necessita ajustes
-// src/controllers/SubscriptionController.js
-const db = require('../database/db');
-const { createOrder } = require('../services/pagbankService');
-
-// Valores em centavos ou reais, conforme você for integrar com o PagSeguro
-const PLAN_PRICES = {
-    starter: 199,
-    professional: 499,
-    enterprise: 899,
-};
-
-async function createCheckoutOnPagSeguro({ user, plan, billing_cycle, amount }) {
-    // amount já está em reais (199, 499, 899)
-    const { orderId, paymentUrl } = await createOrder({
-        user,
-        plan,
-        billing_cycle,
-        amount,
-    });
-
-    return {
-        paymentUrl,
-        gatewayId: orderId,
-    };
-}
+// src/controllers/SubscriptionController.js 
+const Subscription = require('../models/Subscription');
+const { generatePix } = require('../services/pixGenerator');
 
 module.exports = {
-    // POST /api/subscriptions/checkout
     async createCheckout(req, res) {
         try {
-            // para debug remover depois de resolvido
-            console.log('--- CSRF DEBUG /api/subscriptions/checkout ---');
-            console.log('Cookie _csrf:', req.cookies?._csrf);
-            console.log('Header CSRF-Token:', req.headers['csrf-token']);
-
-            const userId = req.session.userId;
-            const { plan, billing_cycle = 'monthly' } = req.body;
-
-            if (!['starter', 'professional', 'enterprise'].includes(plan)) {
-                return res.status(400).json({ error: 'Plano inválido.' });
-            }
-            if (!['monthly', 'annual'].includes(billing_cycle)) {
-                return res.status(400).json({ error: 'Ciclo inválido.' });
+            const userId = req.session?.userId;
+            if (!userId) {
+                return res.status(401).json({ error: 'Usuário não autenticado' });
             }
 
-            const user = await db('users')
-                .where({ id: userId })
-                .select('id', 'username', 'email')
-                .first();
-            if (!user) {
-                return res.status(404).json({ error: 'Usuário não encontrado.' });
+            const { plan, billing_cycle, fullName, cpf, email } = req.body;
+
+            if (!fullName || !cpf || !email) {
+                return res.status(400).json({ error: 'Dados do cliente faltando' });
             }
 
-            const amount = PLAN_PRICES[plan];
+            const pricing = {
+                starter: { monthly: 1, annual: 1 * 12 }, // valores de teste R$1,00
+                professional: { monthly: 499, annual: 499 * 12 },
+                enterprise: { monthly: 899, annual: 899 * 12 }
+            };
 
-            const { paymentUrl, gatewayId } = await createCheckoutOnPagSeguro({
-                user,
-                plan,
-                billing_cycle,
-                amount,
+            if (!pricing[plan]) {
+                return res.status(400).json({ error: 'Plano inválido' });
+            }
+
+            const amount = pricing[plan][billing_cycle];
+            if (!amount) {
+                return res.status(400).json({ error: 'Ciclo inválido' });
+            }
+
+            // 🟢 gerar pix COM SEU GERADOR
+            const pix = await generatePix({
+                amount
             });
 
-            // Opcional: criar uma linha "pending" em subscriptions agora
-            await db('subscriptions').insert({
+            // 🟢 salvar tudo no BD
+            await Subscription.create({
                 user_id: userId,
                 plan,
                 billing_cycle,
                 amount,
-                start_date: new Date(),      // pode ser ajustado depois no webhook
-                expires_date: new Date(),    // idem
-                status: 'pending',
-                payment_method: null,
-                payment_id: gatewayId,
-                created_at: db.fn.now(),
+                txid: pix.txid,
+                payload: pix.payload,
+                full_name: fullName,
+                cpf,
+                email,
+                created_at: new Date(),
+                start_date: new Date()
             });
 
-            return res.json({ paymentUrl });
+            // 🟢 retornar QR
+            return res.json({
+                success: true,
+                amount,
+                txid: pix.txid,
+                payload: pix.payload,
+                qrCodeImage: pix.qrCodeImage
+            });
+
         } catch (err) {
-            console.error('Erro em createCheckout:', err);
-            return res.status(500).json({ error: 'Erro ao criar checkout.' });
+            console.error(err);
+            return res.status(500).json({ error: 'Erro ao gerar pagamento PIX' });
         }
     },
 
-    // POST /api/subscriptions/webhook/pagseguro
-    async pagSeguroWebhook(req, res) {
+    async getStatusByTxid(req, res) {
         try {
-            const event = req.body; // PagBank envia JSON com "order" dentro
+            const userId = req.session?.userId;
+            if (!userId) return res.status(401).json({ ok: false, error: 'Usuário não autenticado' });
 
-            if (!event || !event.order) {
-                return res.status(400).json({ error: 'Payload inválido' });
-            }
+            const txid = String(req.query.txid || '').trim();
+            if (!txid) return res.status(400).json({ ok: false, error: 'txid obrigatório' });
 
-            const order = event.order;
-            const metadata = order.metadata || {};
-            const userId = metadata.user_id;
-            const plan = metadata.plan;
-            const billing_cycle = metadata.billing_cycle || 'monthly';
+            const sub = await Subscription.findByTxid(txid);
+            if (!sub) return res.status(404).json({ ok: false, error: 'txid não encontrado' });
 
-            const charge = (order.charges && order.charges[0]) || null;
-            if (!userId || !plan || !charge) {
-                return res.status(400).json({ error: 'Metadados insuficientes' });
-            }
+            // segurança: impede consultar txid de outro usuário
+            if (Number(sub.user_id) !== Number(userId)) return res.sendStatus(403);
 
-            const status = charge.status;              // e.g. "PAID", "DECLINED", "CANCELED"
-            const paymentId = charge.id;              // id da cobrança (charge_id)
-            const amountCents = charge.amount?.value || 0;
-            const amount = amountCents / 100;
-
-            if (status === 'PAID') {
-                const now = new Date();
-                const expires = new Date(now);
-
-                if (billing_cycle === 'monthly') {
-                    expires.setMonth(expires.getMonth() + 1);
-                } else {
-                    expires.setFullYear(expires.getFullYear() + 1);
-                }
-
-                // Atualiza usuário
-                await db('users')
-                    .where({ id: userId })
-                    .update({
-                        account_type: plan,
-                        billing_cycle,
-                        subscription_expires: expires,
-                        updated_at: db.fn.now(),
-                    });
-
-                // Registra assinatura ativa
-                await db('subscriptions').insert({
-                    user_id: userId,
-                    plan,
-                    billing_cycle,
-                    amount,
-                    start_date: now,
-                    expires_date: expires,
-                    status: 'active',
-                    payment_method: 'pagbank',
-                    payment_id: paymentId,
-                    created_at: db.fn.now(),
-                });
-            } else if (status === 'CANCELED' || status === 'DECLINED') {
-                await db('subscriptions')
-                    .where({ payment_id: paymentId })
-                    .update({ status: 'canceled' });
-            }
-
-            res.sendStatus(200);
+            return res.json({ ok: true, txid, status: sub.status });
         } catch (err) {
-            console.error('Erro no webhook PagSeguro:', err);
-            res.sendStatus(500);
+            console.error(err);
+            return res.status(500).json({ ok: false, error: 'Erro ao consultar status' });
+        }
+    },
+
+
+    async manualConfirm(req, res) {
+        try {
+            if (!req.session?.isAdmin) {
+                return res.status(403).json({ error: 'Acesso negado' });
+            }
+
+            const { txid } = req.body;
+            if (!txid) return res.status(400).json({ error: 'txid obrigatório' });
+
+            await Subscription.updateStatus(txid, 'paid');
+
+            return res.json({ success: true });
+
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Erro ao confirmar pagamento' });
         }
     }
-
 };

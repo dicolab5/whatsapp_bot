@@ -5,12 +5,16 @@ module.exports = {
   findById(id) {
     return db('users')
       .where({ id })
-      .select('username', 'email', 'cpf', 'phone', 'account_type', 'subscription_expires')
+      .select('username', 'email', 'full_name', 'cpf', 'phone', 'account_type', 'subscription_expires')
       .first();
   },
 
   updateEmail(id, email) {
     return db('users').where({ id }).update({ email });
+  },
+
+  updateFullName(id, full_name) {
+    return db('users').where({ id }).update({ full_name });
   },
 
   updatePhone(id, phone) {

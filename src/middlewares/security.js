@@ -138,12 +138,14 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
     if (
       req.path === '/api/auth/login' ||
       req.path === '/api/users/register' ||
-      req.path === '/api/subscriptions/webhook/pagseguro' ||
-      req.path === '/api/broadcast/send' // ← exceção para o form multipart
+      req.path === '/api/subscriptions/manual-confirm' ||
+      req.path === '/api/broadcast/send' ||
+      req.path === '/api/pix/webhook'      
     ) {
       return next();
     }
 
+    // // para debug de csrf
     // console.log('🔍 CSRF DEBUG:');
     // console.log('  → method:', req.method);
     // console.log('  → path:', req.path);
@@ -154,27 +156,6 @@ function csrfMiddleware(app, { IN_PROD, csurf, helmet }) {
 
     return csrfProtection(req, res, next);
   });
-
-  // app.use((req, res, next) => {
-  //   // rotas sem CSRF (se quiser deixar login protegido, remova daqui)
-  //   if (
-  //     req.path === "/api/auth/login" ||
-  //     req.path === "/api/users/register" ||
-  //     req.path === "/api/subscriptions/webhook/pagseguro"
-  //   ) {
-  //     return next();
-  //   }
-
-  //   console.log('🔍 CSRF DEBUG:');
-  //   console.log('  → method:', req.method);
-  //   console.log('  → path:', req.path);
-  //   console.log('  → body:', req.body);
-  //   console.log('  → body._csrf:', req.body?._csrf);
-  //   console.log('  → cookies:', req.cookies);
-  //   console.log('---------------------------------');
-
-  //   return csrfProtection(req, res, next);
-  // });
   
 }
 
@@ -182,4 +163,3 @@ module.exports = {
   securityMiddleware,
   csrfMiddleware
 };
-
