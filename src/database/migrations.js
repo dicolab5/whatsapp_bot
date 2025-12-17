@@ -52,45 +52,38 @@ async function runMigrations() {
     }
   }
 
-  // // Garantir UNIQUE (user_id, wa_id) em whatsapp_contacts para multi-usuário
-  // try {
-  //   const hasContacts = await db.schema.hasTable('whatsapp_contacts');
-  //   if (hasContacts) {
-  //     await db.schema.alterTable('whatsapp_contacts', (table) => {
-  //       // remover unique antigo só em wa_id, se ainda existir em algum ambiente
-  //       //table.dropUnique(['wa_id'], 'whatsapp_contacts_wa_id_unique');
-  //       // garantir unique composto (user_id, wa_id)
-  //       table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
-  //     });
-  //   }
-  // } catch (err) {
-  //   console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
-  // }
+  // ✅ garantir coluna user_id antes do unique composto
+const hasUserId = await db.schema.hasColumn('whatsapp_contacts', 'user_id');
+if (!hasUserId) {
+  await db.schema.alterTable('whatsapp_contacts', (table) => {
+    table.integer('user_id').nullable(); // ajuste nullability conforme seu modelo
+  });
+  console.log('✅ Coluna user_id adicionada na tabela whatsapp_contacts');
+}
 
-  try {
-  const hasContacts = await db.schema.hasTable('whatsapp_contacts');
-  if (hasContacts) {
-    const exists = await db.raw(`
-      SELECT 1
-      FROM pg_constraint c
-      JOIN pg_class t ON c.conrelid = t.oid
-      WHERE t.relname = 'whatsapp_contacts'
-        AND c.conname = 'whatsapp_contacts_user_wa_unique'
-      LIMIT 1;
-    `);
+try {
+  const exists = await db.raw(`
+    SELECT 1
+    FROM pg_constraint c
+    JOIN pg_class t ON c.conrelid = t.oid
+    WHERE t.relname = 'whatsapp_contacts'
+      AND c.conname = 'whatsapp_contacts_user_wa_unique'
+    LIMIT 1;
+  `);
 
-    const alreadyExists = exists.rows?.length > 0;
+  const alreadyExists = exists.rows?.length > 0;
 
-    if (!alreadyExists) {
-      await db.schema.alterTable('whatsapp_contacts', (table) => {
-        table.unique(['user_id', 'wa_id'], 'whatsapp_contacts_user_wa_unique');
-      });
-    }
+  if (!alreadyExists) {
+    await db.schema.alterTable('whatsapp_contacts', (table) => {
+      table.unique(['user_id', 'wa_id'], {
+        indexName: 'whatsapp_contacts_user_wa_unique',
+        useConstraint: true,
+      }); // API do Knex para unique composto [web:299]
+    });
   }
 } catch (err) {
   console.warn('⚠️ Erro ao ajustar unique de whatsapp_contacts:', err.message);
 }
-
 
   // Tabela de transmissões (broadcasts) do WhatsApp
   const hasBroadcasts = await db.schema.hasTable('whatsapp_broadcasts');
@@ -578,5 +571,6 @@ if (require.main === module) {
 }
 
 module.exports = runMigrations;
+
 
 
