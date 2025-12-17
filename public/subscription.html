@@ -5,6 +5,105 @@
   <title>Assinatura - WhatsApp Bot Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/css/style_index.css">
+  <link rel="stylesheet" href="/css/modal.css">
+  <link rel="stylesheet" href="/css/botao.css">
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>Planos de Assinatura</h1>
+      <p>Escolha o plano ideal para o seu negócio</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <section class="pricing-section">
+      <div class="pricing-cards">
+        <div class="plan-card" data-plan="starter">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">R$ 1</div>
+          <div class="plan-price-period">/mês</div>
+          <button class="plan-button secondary" data-plan="starter">
+            Assinar Starter
+          </button>
+        </div>
+
+        <div class="plan-card featured" data-plan="professional">
+          <div class="plan-name">Professional</div>
+          <div class="plan-price">R$ 499</div>
+          <div class="plan-price-period">/mês</div>
+          <button class="plan-button primary" data-plan="professional">
+            Assinar Professional
+          </button>
+        </div>
+
+        <div class="plan-card" data-plan="enterprise">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">R$ 899</div>
+          <div class="plan-price-period">/mês</div>
+          <button class="plan-button secondary" data-plan="enterprise">
+            Assinar Enterprise
+          </button>
+        </div>
+      </div>
+
+      <div class="billing-toggle">
+        <span class="billing-label">Mensal</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="billingToggle">
+          <span class="slider"></span>
+        </label>
+        <span class="billing-label">Anual</span>
+      </div>
+
+      <input type="hidden" id="billingCycle" value="monthly">
+
+      <div id="subscriptionMessage" style="margin-top:20px; text-align:center;"></div>
+    </section>
+  </div>
+
+  <input type="hidden" id="billingCycle" value="monthly">
+
+<div id="subscriptionMessage" style="margin-top:20px; text-align:center;"></div>
+</section>
+</div>
+
+<!-- Modal CPF -->
+<div id="cpfModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <h2>Confirme seu CPF</h2>
+
+    <div id="cpfInfoArea">
+      <!-- preenchido via JS -->
+    </div>
+
+    <label style="display:block; margin-top:15px;">
+      <input type="checkbox" id="cpfAgreeCheckbox">
+      Li e concordo em usar este mesmo CPF no pagamento.
+    </label>
+
+    <div style="margin-top:20px; text-align:right;">
+      <button id="cpfCancelButton" class="btn-secondary">Cancelar</button>
+      <button id="cpfContinueButton" class="btn-primary" disabled>
+        Continuar para pagamento
+      </button>
+    </div>
+  </div>
+</div>
+
+  <script src="/js/http.js"></script>
+  <script src="/js/subscription.js"></script>
+</body>
+</html>
+
+
+<!-- <!DOCTYPE html> 
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Assinatura - WhatsApp Bot Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/css/style_index.css">
 </head>
 <body>
   <div class="header">
@@ -57,4 +156,4 @@
   <script src="/js/http.js"></script>
   <script src="/js/subscription.js"></script>
 </body>
-</html>
+</html> -->

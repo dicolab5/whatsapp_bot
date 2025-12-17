@@ -36,8 +36,15 @@
             </div>
             <div class="mb-3">
               <label for="password" class="form-label">Senha</label>
-              <input type="password" id="password" name="password" class="form-control" required minlength="6" />
-            </div>
+              <input type="password" id="password" name="password" class="form-control" required minlength="12" />
+              <ul id="passwordRequirements" class="mt-2 small list-unstyled">
+                <li id="req-upper" class="text-danger">• Pelo menos 1 letra maiúscula</li>
+                <li id="req-lower" class="text-danger">• Pelo menos 1 letra minúscula</li>
+                <li id="req-number" class="text-danger">• Pelo menos 1 número</li>
+                <li id="req-symbol" class="text-danger">• Pelo menos 1 símbolo</li>
+                <li id="req-length" class="text-danger">• Mínimo de 12 caracteres</li>
+              </ul>
+            </div>            
             <button type="submit" class="btn btn-primary w-100">Criar Conta Grátis</button>
           </form>
           <div id="resultMessage" class="mt-3"></div>

@@ -433,6 +433,7 @@ body {
 /* remover daqui pra baixo se o nav ficar feio */
 
 .header {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   /* mantém o que você já tinha, só ajusta levemente o bottom */
   padding-top: 60px;
   padding-bottom: 15px;  /* aproxima tudo da faixa branca */
@@ -445,15 +446,37 @@ body {
 
 .header-links a {
   color: #fff;
-  text-decoration: none; /* sem underline */
+  text-decoration: none;
   margin: 0 24px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem; /* fixo */
+  display: inline-block;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .header-links a:hover {
-  text-decoration: none;
   opacity: 0.9;
+  transform: scale(1.12); /* “aumenta a letra” sem mudar layout */
 }
 
+/*Alert estiloso*/
+
+.upgrade-alert {
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border-radius: 4px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  text-align: center;
+}
+
+.upgrade-alert h2 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+}
+
+.upgrade-alert p {
+  margin: 4px 0;
+}
 

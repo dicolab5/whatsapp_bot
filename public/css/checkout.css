@@ -1,0 +1,101 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f6fa;
+    margin: 30px auto;
+    max-width: 600px;
+}
+
+.summary-box, .form-box, .pix-area {
+    background: white;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #2b7cff;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1d5fcc;
+}
+
+.qr-wrapper {
+    width: 220px;
+    height: 220px;
+    margin: 10px auto;
+}
+
+.qr-image {
+    width: 100%;
+    height: 100%;
+}
+
+.pix-code {
+    width: 100%;
+    height: 80px;
+}
+
+.pix-area {
+    text-align: center;
+}
+
+/* Modal */
+.modal.hidden { display: none; }
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5000;
+}
+
+.modal-content {
+    background: white;
+    width: 300px;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.processing-box {
+    margin-top: 20px;
+    background: #eef;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.processing-box.hidden {
+    display: none;
+}
+
+#sendReceiptButton, .closeModal {
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    cursor: pointer;
+}

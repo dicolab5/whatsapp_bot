@@ -1,5 +1,62 @@
-// public/js/config.js
+// public/js/config.js 
 document.addEventListener('DOMContentLoaded', () => {
+
+  // -------- Requisitos de senha forte na troca de senha --------
+const newPassInput = document.getElementById('newPass');
+
+const reqUpper = document.getElementById('req-upper');
+const reqLower = document.getElementById('req-lower');
+const reqNumber = document.getElementById('req-number');
+const reqSymbol = document.getElementById('req-symbol');
+const reqLength = document.getElementById('req-length');
+
+function updatePasswordRequirements(value) {
+  const hasUpper = /[A-Z]/.test(value);
+  const hasLower = /[a-z]/.test(value);
+  const hasNumber = /[0-9]/.test(value);
+  const hasSymbol = /[^A-Za-z0-9]/.test(value);
+  const hasLength = value.length >= 12;
+
+  function setReq(el, ok) {
+    if (!el) return;
+    el.classList.toggle('text-success', ok);
+    el.classList.toggle('text-danger', !ok);
+  }
+
+  setReq(reqUpper, hasUpper);
+  setReq(reqLower, hasLower);
+  setReq(reqNumber, hasNumber);
+  setReq(reqSymbol, hasSymbol);
+  setReq(reqLength, hasLength);
+}
+
+function isStrongPassword(pwd) {
+  return (
+    pwd.length >= 12 &&
+    /[A-Z]/.test(pwd) &&
+    /[a-z]/.test(pwd) &&
+    /[0-9]/.test(pwd) &&
+    /[^A-Za-z0-9]/.test(pwd)
+  );
+}
+
+newPassInput.addEventListener('input', (e) => {
+  updatePasswordRequirements(e.target.value);
+});
+
+
+  // Mascaras de formatação tel e cpf
+  const cpfInput = document.getElementById('cpf');
+  const phoneInput = document.getElementById('cellphone');
+
+  cpfInput.addEventListener('input', (e) => {
+    e.target.value = maskCPF(e.target.value);
+  });
+
+  phoneInput.addEventListener('input', (e) => {
+    e.target.value = maskPhone(e.target.value);
+  });
+
   // CARREGAR INFORMAÇÕES DO PERFIL
   async function loadUserInfo() {
     try {
@@ -10,7 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('infoEmail').innerText = data.email;
       document.getElementById('infoAccountType').innerText = data.account_type;
       document.getElementById('infoExpires').innerText =
-        new Date(data.subscription_expires).toLocaleDateString('pt-BR');
+        data.subscription_expires
+          ? new Date(data.subscription_expires).toLocaleDateString('pt-BR')
+          : '-';
+      
+      document.getElementById('fullName').value = data.full_name || '';
+      document.getElementById('cellphone').value = data.phone || '';
+      document.getElementById('cpf').value = data.cpf || '';
 
       if (data.two_factor_enabled) {
         document.getElementById('disable2FA').classList.remove('d-none');
@@ -23,41 +86,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadUserInfo();
 
+  // SALVAR NOME COMPLETO
+  document.getElementById('saveFullName').onclick = async () => {
+  const full_name = document.getElementById('fullName').value.trim();
+  if (!full_name) { alert('Informe seu nome completo'); return; }
+
+  try {
+    const res = await apiFetch('/api/config/full-name', {
+      method: 'PUT',
+      body: JSON.stringify({ full_name })
+    });
+    alert(res.ok ? 'Nome atualizado!' : 'Erro ao atualizar nome');
+  } catch (err) {
+    console.error('Erro ao atualizar nome:', err);
+    alert('Erro ao atualizar nome');
+  }
+};
+
   // ALTERAR SENHA
   document.getElementById('changePassword').onclick = async () => {
-    const currentPassword = document.getElementById('oldPass').value;
-    const newPassword = document.getElementById('newPass').value;
+  const currentPassword = document.getElementById('oldPass').value;
+  const newPassword = document.getElementById('newPass').value;
 
-    try {
-      const res = await apiFetch('/api/config/password', {
-        method: 'PUT',
-        body: JSON.stringify({ currentPassword, newPassword })
-      });
+  if (!isStrongPassword(newPassword)) {
+    alert('A nova senha deve ter pelo menos 12 caracteres, com letras maiúsculas, minúsculas, números e símbolos.');
+    return;
+  }
 
-      alert(res.ok ? 'Senha alterada!' : 'Erro ao alterar senha');
-    } catch (err) {
-      console.error('Erro ao alterar senha:', err);
-      alert('Erro ao alterar senha');
+  try {
+    const res = await apiFetch('/api/config/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    alert(res.ok ? 'Senha alterada!' : 'Erro ao alterar senha');
+    if (res.ok) {
+      document.getElementById('oldPass').value = '';
+      document.getElementById('newPass').value = '';
+      updatePasswordRequirements('');
     }
-  };
+  } catch (err) {
+    console.error('Erro ao alterar senha:', err);
+    alert('Erro ao alterar senha');
+  }
+};
+  // document.getElementById('changePassword').onclick = async () => {
+  //   const currentPassword = document.getElementById('oldPass').value;
+  //   const newPassword = document.getElementById('newPass').value;
 
-  // ALTERAR CPF E TELEFONE
-  document.getElementById('savePersonal').onclick = async () => {
-    const cpf = document.getElementById('cpf').value;
-    const phone = document.getElementById('cellphone').value;
+  //   try {
+  //     const res = await apiFetch('/api/config/password', {
+  //       method: 'PUT',
+  //       body: JSON.stringify({ currentPassword, newPassword })
+  //     });
 
-    try {
-      const res = await apiFetch('/api/config/personal', {
-        method: 'PUT',
-        body: JSON.stringify({ cpf, phone })
-      });
+  //     alert(res.ok ? 'Senha alterada!' : 'Erro ao alterar senha');
+  //   } catch (err) {
+  //     console.error('Erro ao alterar senha:', err);
+  //     alert('Erro ao alterar senha');
+  //   }
+  // };
 
-      alert(res.ok ? 'Dados atualizados!' : 'Erro ao atualizar dados');
-    } catch (err) {
-      console.error('Erro ao atualizar dados pessoais:', err);
-      alert('Erro ao atualizar dados');
-    }
-  };
+  // SALVAR TELEFONE
+document.getElementById('savePhone').onclick = async () => {
+  const phone = document.getElementById('cellphone').value;
+
+  try {
+    const res = await apiFetch('/api/config/phone', {
+      method: 'PUT',
+      body: JSON.stringify({ phone })
+    });
+
+    alert(res.ok ? 'Telefone atualizado!' : 'Erro ao atualizar telefone');
+  } catch (err) {
+    console.error('Erro ao atualizar telefone:', err);
+    alert('Erro ao atualizar telefone');
+  }
+};
+
+// SALVAR CPF
+document.getElementById('saveCPF').onclick = async () => {
+  const cpf = document.getElementById('cpf').value;
+
+  try {
+    const res = await apiFetch('/api/config/cpf', {
+      method: 'PUT',
+      body: JSON.stringify({ cpf })
+    });
+
+    alert(res.ok ? 'CPF atualizado!' : 'Erro ao atualizar CPF');
+  } catch (err) {
+    console.error('Erro ao atualizar CPF:', err);
+    alert('Erro ao atualizar CPF');
+  }
+};
 
   // ATIVAR 2FA (gera QR CODE)
   document.getElementById('enable2FA').onclick = async () => {
@@ -125,168 +247,3 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = '/subscription.html';
   };
 });
-
-
-// // public/js/config.js
-// document.addEventListener("DOMContentLoaded", () => {
-
-//     function getCookie(name) {
-//         const value = `; ${document.cookie}`;
-//         const parts = value.split(`; ${name}=`);
-//         if (parts.length === 2) return parts.pop().split(";").shift();
-//     }
-
-//     // ------------------------------------
-//     // CARREGAR INFORMAÇÕES DO PERFIL
-//     // ------------------------------------
-//     async function loadUserInfo() {
-//         const res = await fetch("api/config/profile");
-//         const data = await res.json();
-
-//         document.getElementById("infoUsername").innerText = data.username;
-//         document.getElementById("infoEmail").innerText = data.email;
-//         document.getElementById("infoAccountType").innerText = data.account_type;
-//         document.getElementById("infoExpires").innerText =
-//             new Date(data.subscription_expires).toLocaleDateString('pt-BR');
-
-//         if (data.two_factor_enabled) {
-//             document.getElementById("disable2FA").classList.remove("d-none");
-//             document.getElementById("enable2FA").classList.add("d-none");
-//         }
-//     }
-
-//     loadUserInfo();
-
-
-
-//     // ------------------------------------
-//     // ALTERAR SENHA
-//     // ------------------------------------
-//     document.getElementById("changePassword").onclick = async () => {
-//         const currentPassword = document.getElementById("oldPass").value;
-//         const newPassword = document.getElementById("newPass").value;
-
-//         const res = await fetch("api/config/password", {
-//             method: "PUT",
-//             credentials: "include",
-//             headers: {
-//                 "Content-Type": "application/json",
-//                 "X-CSRF-Token": getCookie("XSRF-TOKEN")
-//             },
-//             body: JSON.stringify({ currentPassword, newPassword })
-//         });
-
-//         alert(res.ok ? "Senha alterada!" : "Erro ao alterar senha");
-//     };
-
-
-
-//     // ------------------------------------
-//     // ALTERAR CPF E TELEFONE
-//     // ------------------------------------
-//     document.getElementById("savePersonal").onclick = async () => {
-//         const cpf = document.getElementById("cpf").value;
-//         const phone = document.getElementById("cellphone").value;
-
-//         const res = await fetch("api/config/personal", {
-//             method: "PUT",
-//             credentials: "include",
-//             headers: {
-//                 "Content-Type": "application/json",
-//                 "X-CSRF-Token": getCookie("XSRF-TOKEN")
-//             },
-//             body: JSON.stringify({ cpf, phone })
-//         });
-
-//         alert(res.ok ? "Dados atualizados!" : "Erro ao atualizar dados");
-//     };
-
-
-
-//     // ------------------------------------
-//     // ATIVAR 2FA (gera QR CODE)
-//     // ------------------------------------
-//     document.getElementById("enable2FA").onclick = async () => {
-//         const res = await fetch("api/auth/enable-2fa", {
-//             method: "POST",
-//             credentials: "include",
-//             headers: {
-//                 "X-CSRF-Token": getCookie("XSRF-TOKEN")
-//             }
-//         });
-
-//         const data = await res.json();
-
-//         if (data.qrCode) {
-//             document.getElementById("qrCode").src = data.qrCode;
-//             document.getElementById("qrcodeContainer").style.display = "block";
-//         }
-//     };
-
-
-
-//     // ------------------------------------
-//     // VERIFICAR TOKEN DE 2FA (TOTP)
-//     // ------------------------------------
-//     document.getElementById("verify2FA").onclick = async () => {
-//         const token = document.getElementById("totpToken").value.trim();  // ← token + trim()
-
-//         // const res = await fetch("api/auth/verify-2fa", {
-//         //     method: "POST",
-//         //     credentials: "include",
-//         //     headers: {
-//         //         "Content-Type": "application/json",
-//         //         "X-CSRF-Token": getCookie("XSRF-TOKEN")
-//         //     },
-//         //     body: JSON.stringify({ code })
-//         // });
-
-//         const res = await fetch("api/auth/verify-2fa", {
-//             method: "POST",
-//             credentials: "include",
-//             headers: {
-//                 "Content-Type": "application/json",
-//                 "X-CSRF-Token": getCookie("XSRF-TOKEN")
-//             },
-//             body: JSON.stringify({ token })  // ← { token } ao invés de { code }
-//         });
-
-//         if (res.ok) {
-//             alert("2FA ativado!");
-//             location.reload();
-//         } else {
-//             alert("Código inválido");
-//         }
-//     };
-
-
-
-//     // ------------------------------------
-//     // DESATIVAR 2FA
-//     // ------------------------------------
-//     document.getElementById("disable2FA").onclick = async () => {
-//         const res = await fetch("api/auth/disable-2fa", {
-//             method: "POST",
-//             credentials: "include",
-//             headers: {
-//                 "X-CSRF-Token": getCookie("XSRF-TOKEN")
-//             }
-//         });
-
-//         if (res.ok) {
-//             alert("2FA desativado!");
-//             location.reload();
-//         }
-//     };
-
-
-
-//     // ------------------------------------
-//     // RENOVAR ASSINATURA (placeholder)
-//     // ------------------------------------
-//     document.getElementById("renewPlan").onclick = () => {
-//        // alert("Página de pagamento em desenvolvimento!"); // incrementar depois para redirecionar para subscription.html
-//         window.location.href = "/subscription.html";
-//     };
-
-// });

@@ -13,6 +13,14 @@
     <div class="container">
       <h1>🔒 Segurança & Privacidade</h1>
       <p>Como o WhatsApp Bot Manager protege seus dados e o WhatsApp da sua empresa</p>
+
+      <div class="header-links">
+        <a href="/">Início</a>
+        <a href="/login">Entrar</a>
+        <a href="/cadastro">Cadastrar</a>
+        <a href="/terms">Termos de Serviço</a>
+        <a href="https://wa.me/24999999850">Fale Conosco</a>
+      </div>
     </div>
   </div>
 
@@ -79,52 +87,52 @@
       <h2 class="section-title">Medidas de Segurança Implementadas</h2>
 
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question">
           <span>Criptografia e proteção em trânsito</span>
           <span class="faq-toggle">▼</span>
         </div>
         <div class="faq-answer">
-          Todo o acesso ao painel é feito via HTTPS, protegendo a comunicação entre o navegador da sua equipe e o servidor. O conteúdo das mensagens continua criptografado de ponta a ponta pelo próprio WhatsApp entre o aparelho e os servidores da Meta.[web:279][web:283]
+          Todo o acesso ao painel é feito via HTTPS, protegendo a comunicação entre o navegador da sua equipe e o servidor. O conteúdo das mensagens continua criptografado de ponta a ponta pelo próprio WhatsApp entre o aparelho e os servidores da Meta.
         </div>
       </div>
 
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question">
           <span>Controle de acesso e autenticação</span>
           <span class="faq-toggle">▼</span>
         </div>
         <div class="faq-answer">
-          O painel é protegido por usuário e senha, com sessões seguras e expiração automática. Você pode restringir o acesso apenas à sua equipe autorizada, mantendo o histórico de atendimentos centralizado em um único lugar.[web:264][web:211]
+          O painel é protegido por usuário e senha, com sessões seguras e expiração automática. Você pode restringir o acesso apenas à sua equipe autorizada, mantendo o histórico de atendimentos centralizado em um único lugar.
         </div>
       </div>
 
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question">
           <span>Isolamento por conta e LGPD</span>
           <span class="faq-toggle">▼</span>
         </div>
         <div class="faq-answer">
-          Cada conta de cliente tem sua própria base de contatos e conversas, evitando mistura de dados entre empresas. Trabalhamos com princípios da LGPD, como minimização de dados, controle de acesso e transparência no tratamento das informações dos seus contatos.[web:283]
+          Cada conta de cliente tem sua própria base de contatos e conversas, evitando mistura de dados entre empresas. Trabalhamos com princípios da LGPD, como minimização de dados, controle de acesso e transparência no tratamento das informações dos seus contatos.
         </div>
       </div>
 
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question">
           <span>Uso responsável de automação</span>
           <span class="faq-toggle">▼</span>
         </div>
         <div class="faq-answer">
-          A plataforma foi pensada para relacionamento e atendimento, não para spam. Limitamos envios em massa, incentivamos o uso de opt-in e ajudamos você a manter uma boa reputação com o WhatsApp, reduzindo o risco de bloqueios por uso indevido.[web:267][web:274]
+          A plataforma foi pensada para relacionamento e atendimento, não para spam. Limitamos envios em massa, incentivamos o uso de opt-in e ajudamos você a manter uma boa reputação com o WhatsApp, reduzindo o risco de bloqueios por uso indevido.
         </div>
       </div>
 
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question">
           <span>Boas práticas de infraestrutura</span>
           <span class="faq-toggle">▼</span>
         </div>
         <div class="faq-answer">
-          O ambiente segue boas práticas de segurança web: proteção contra ataques comuns (CSRF, XSS, brute force), monitoramento de dependências, atualizações regulares e isolamento das pastas onde ficam os dados de sessão do WhatsApp Web.[web:264][web:211]
+          O ambiente segue boas práticas de segurança web: proteção contra ataques comuns (CSRF, XSS, brute force), monitoramento de dependências, atualizações regulares e isolamento das pastas onde ficam os dados de sessão do WhatsApp Web.
         </div>
       </div>
     </section>
@@ -133,7 +141,7 @@
     <section class="cta-section">
       <h2>Segurança para você, privacidade para seus clientes</h2>
       <p>Automatize seu atendimento no WhatsApp com uma solução pensada para proteger sua marca e os dados do seu negócio.</p>
-      <button class="cta-button" onclick="window.location.href='/login'">
+      <button class="cta-button" id="cta-privacy-login">
         Começar agora com segurança
       </button>
     </section>
@@ -142,11 +150,11 @@
   <!-- Footer -->
   <div class="footer">
     <p>&copy; 2025 WhatsApp Bot Manager. Todos os direitos reservados. | 
-      <a href="#" style="color: inherit; text-decoration: underline;">Termos de Serviço</a> | 
-      <a href="#" style="color: inherit; text-decoration: underline;">Política de Privacidade</a>
+      <a href="/terms" style="color: inherit; text-decoration: underline;">Termos de Serviço</a> | 
+      <a href="https://wa.me/24999999850" style="color: inherit; text-decoration: underline;">Fale Conosco</a>
     </p>
   </div>
 
-  <script src="js/index.js"></script>
+  <script src="/js/privacity.js"></script>
 </body>
 </html>

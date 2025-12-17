@@ -48,6 +48,13 @@
                 <h5>Alterar Senha</h5>
                 <input id="oldPass" type="password" placeholder="Senha atual" class="form-control mb-2">
                 <input id="newPass" type="password" placeholder="Nova senha" class="form-control mb-2">
+                <ul id="passwordRequirements" class="mt-2 small list-unstyled">
+                    <li id="req-upper" class="text-danger">• Pelo menos 1 letra maiúscula</li>
+                    <li id="req-lower" class="text-danger">• Pelo menos 1 letra minúscula</li>
+                    <li id="req-number" class="text-danger">• Pelo menos 1 número</li>
+                    <li id="req-symbol" class="text-danger">• Pelo menos 1 símbolo</li>
+                    <li id="req-length" class="text-danger">• Mínimo de 12 caracteres</li>
+                </ul>
                 <button id="changePassword" class="btn btn-primary btn-sm">Alterar Senha</button>
             </div>
         </div>
@@ -57,13 +64,17 @@
             <div class="card-body">
                 <h5>Dados Pessoais</h5>
 
-                <label class="fw-bold mt-2">Celular</label>
-                <input id="cellphone" type="text" class="form-control mb-3" placeholder="(11) 99999-9999">
+                <label class="fw-bold mt-2">Nome completo</label>
+                <input id="fullName" type="text" class="form-control mb-2" placeholder="Seu nome completo">
+                <button id="saveFullName" class="btn btn-success btn-sm mb-3">Salvar Nome</button>
 
+                <label class="fw-bold mt-2">Celular</label>
+                <input id="cellphone" type="text" class="form-control mb-2" placeholder="(11) 99999-9999">
+                <button id="savePhone" class="btn btn-success btn-sm mb-3">Salvar Telefone</button>
+                
                 <label class="fw-bold">CPF</label>
                 <input id="cpf" type="text" class="form-control mb-2" placeholder="000.000.000-00">
-
-                <button id="savePersonal" class="btn btn-success btn-sm">Salvar Dados</button>
+                <button id="saveCPF" class="btn btn-success btn-sm">Salvar CPF</button>
             </div>
         </div>
 
@@ -98,10 +109,12 @@
 
     </div> <!-- container -->
 
-    <canvas id="matrix"></canvas>
+    <canvas id="matrix"></canvas>    
     <script src="/js/http.js"></script>
     <script src="/js/matrix.js"></script>
+    <script src="/js/masks.js"></script>
     <script src="/js/config.js"></script>
+    
 </body>
 
 </html>
