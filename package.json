@@ -16,6 +16,7 @@
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "csurf": "^1.11.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -27,10 +28,12 @@
     "multer": "^2.0.2",
     "mysql2": "^3.15.3",
     "pg": "^8.16.3",
+    "pix-payload": "^1.0.4",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
     "speakeasy": "^2.0.0",
     "sqlite3": "^5.1.7",
+    "uuid": "^13.0.0",
     "whatsapp-web.js": "^1.34.2"
   }
 }
